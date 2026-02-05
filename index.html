@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating 3D Cube</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #e94560;
+            margin-bottom: 40px;
+            font-size: 2rem;
+            text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+        }
+
+        .scene {
+            width: 200px;
+            height: 200px;
+            perspective: 600px;
+        }
+
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotate 10s infinite linear;
+        }
+
+        .face {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(5px);
+        }
+
+        .front {
+            background: rgba(233, 69, 96, 0.7);
+            transform: translateZ(100px);
+        }
+
+        .back {
+            background: rgba(67, 97, 238, 0.7);
+            transform: rotateY(180deg) translateZ(100px);
+        }
+
+        .right {
+            background: rgba(76, 201, 240, 0.7);
+            transform: rotateY(90deg) translateZ(100px);
+        }
+
+        .left {
+            background: rgba(114, 9, 183, 0.7);
+            transform: rotateY(-90deg) translateZ(100px);
+        }
+
+        .top {
+            background: rgba(247, 37, 133, 0.7);
+            transform: rotateX(90deg) translateZ(100px);
+        }
+
+        .bottom {
+            background: rgba(58, 12, 163, 0.7);
+            transform: rotateX(-90deg) translateZ(100px);
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotateX(0deg) rotateY(0deg);
+            }
+            100% {
+                transform: rotateX(360deg) rotateY(360deg);
+            }
+        }
+
+        .controls {
+            margin-top: 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: linear-gradient(135deg, #e94560, #f72585);
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(233, 69, 96, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .speed-control {
+            margin-top: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            width: 150px;
+            accent-color: #e94560;
+        }
+
+        .speed-label {
+            min-width: 60px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>3D Rotating Cube</h1>
+    
+    <div class="scene">
+        <div class="cube" id="cube">
+            <div class="face front">Front</div>
+            <div class="face back">Back</div>
+            <div class="face right">Right</div>
+            <div class="face left">Left</div>
+            <div class="face top">Top</div>
+            <div class="face bottom">Bottom</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="toggleBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+
+    <div class="speed-control">
+        <label>Speed:</label>
+        <input type="range" id="speedSlider" min="1" max="20" value="10">
+        <span class="speed-label" id="speedLabel">1x</span>
+    </div>
+
+    <script>
+        const cube = document.getElementById('cube');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedLabel = document.getElementById('speedLabel');
+
+        let isPlaying = true;
+        let currentSpeed = 10;
+
+        function updateAnimation() {
+            const duration = 20 / (currentSpeed / 10);
+            cube.style.animationDuration = `${duration}s`;
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            cube.style.animationPlayState = isPlaying ? 'running' : 'paused';
+            toggleBtn.textContent = isPlaying ? 'Pause' : 'Play';
+        });
+
+        resetBtn.addEventListener('click', () => {
+            cube.style.animation = 'none';
+            cube.offsetHeight; // Trigger reflow
+            cube.style.animation = null;
+            updateAnimation();
+            if (!isPlaying) {
+                cube.style.animationPlayState = 'paused';
+            }
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            currentSpeed = parseInt(e.target.value);
+            speedLabel.textContent = `${(currentSpeed / 10).toFixed(1)}x`;
+            updateAnimation();
+        });
+
+        // Initialize
+        updateAnimation();
+    </script>
+</body>
+</html>
