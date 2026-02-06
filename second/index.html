@@ -101,8 +101,12 @@
     // Seed a few spheres
     for (let i = 0; i < 8; i++) addSphere();
 
-    // Click to add more
-    window.addEventListener('click', () => addSphere());
+    // Click/touch to add more
+    window.addEventListener('pointerdown', (e) => {
+      // ignore right-click / secondary
+      if (e.button && e.button !== 0) return;
+      addSphere();
+    });
 
     // Resize
     window.addEventListener('resize', () => {
