@@ -64,7 +64,46 @@ const sphereContact = new CANNON.ContactMaterial(sphereMat, sphereMat, {
 });
 world.addContactMaterial(sphereContact);
 
-const spheres = [];
+class Entity {
+  constructor(name) {
+    this.name = name;
+    this.components = new Map();
+  }
+
+  addComponent(component) {
+    this.components.set(component.type, component);
+    component.entity = this;
+    return this;
+  }
+
+  getComponent(type) {
+    return this.components.get(type);
+  }
+
+  hasComponents(...types) {
+    return types.every((type) => this.components.has(type));
+  }
+}
+
+class MeshComponent {
+  static type = 'mesh';
+
+  constructor(mesh) {
+    this.type = MeshComponent.type;
+    this.mesh = mesh;
+  }
+}
+
+class PhysicsComponent {
+  static type = 'physics';
+
+  constructor(body) {
+    this.type = PhysicsComponent.type;
+    this.body = body;
+  }
+}
+
+const entities = [];
 
 function addSphere(x = (Math.random() - 0.5) * 6, y = 12 + Math.random() * 6, z = (Math.random() - 0.5) * 6) {
   const r = 0.5 + Math.random() * 0.6;
@@ -94,7 +133,10 @@ function addSphere(x = (Math.random() - 0.5) * 6, y = 12 + Math.random() * 6, z 
   });
   world.addBody(body);
 
-  spheres.push({ mesh, body });
+  const entity = new Entity('snowball');
+  entity.addComponent(new MeshComponent(mesh));
+  entity.addComponent(new PhysicsComponent(body));
+  entities.push(entity);
 }
 
 // Seed a few spheres
@@ -122,9 +164,13 @@ function animate(time) {
     const dt = Math.min(0.033, (time - lastTime) / 1000);
     world.step(1 / 60, dt, 3);
 
-    for (const s of spheres) {
-      s.mesh.position.copy(s.body.position);
-      s.mesh.quaternion.copy(s.body.quaternion);
+    for (const entity of entities) {
+      if (entity.hasComponents(MeshComponent.type, PhysicsComponent.type)) {
+        const mesh = entity.getComponent(MeshComponent.type).mesh;
+        const body = entity.getComponent(PhysicsComponent.type).body;
+        mesh.position.copy(body.position);
+        mesh.quaternion.copy(body.quaternion);
+      }
     }
   }
   lastTime = time;
