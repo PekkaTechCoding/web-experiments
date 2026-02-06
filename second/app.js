@@ -105,6 +105,11 @@ class PhysicsComponent {
 
 const entities = [];
 
+const groundEntity = new Entity('ground');
+groundEntity.addComponent(new MeshComponent(ground));
+groundEntity.addComponent(new PhysicsComponent(groundBody));
+entities.push(groundEntity);
+
 function addSphere(x = (Math.random() - 0.5) * 6, y = 12 + Math.random() * 6, z = (Math.random() - 0.5) * 6) {
   const r = 0.5 + Math.random() * 0.6;
   const geom = new THREE.SphereGeometry(r, 24, 24);
