@@ -20,6 +20,18 @@ export class World {
     this.treeMat = new CANNON.Material('tree');
     this.rampMat = new CANNON.Material('ramp');
     this.skierMat = new CANNON.Material('skier');
+    this.terrainMat = new CANNON.Material('terrain');
+
+    this.terrain = {
+      seed: 1337,
+      chunkSize: 80,
+      segments: 64,
+      viewAhead: 4,
+      viewBehind: 1,
+      chunks: new Map(),
+      slope: 0.08,
+      mountainHeight: 8,
+    };
   }
 
   addEntity(entity) {
@@ -42,26 +54,13 @@ export class World {
     dir.shadow.mapSize.set(2048, 2048);
     scene.add(dir);
 
-    // Ground (visual) - snow-covered ground
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0xf5f9fc, roughness: 0.85, metalness: 0 });
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), groundMat);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-
-    // Physics ground
-    const groundBody = new CANNON.Body({
-      type: CANNON.Body.STATIC,
-      shape: new CANNON.Plane(),
-      material: new CANNON.Material('ground'),
-    });
-    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-
     // Contact material - snowballs have higher friction and lower bounce
-    const contact = new CANNON.ContactMaterial(groundBody.material, this.sphereMat, {
+    const contact = new CANNON.ContactMaterial(this.terrainMat, this.sphereMat, {
       friction: 0.8,
       restitution: 0.2,
     });
     this.physicsWorld.addContactMaterial(contact);
+
     // Snowball-to-snowball interactions
     const sphereContact = new CANNON.ContactMaterial(this.sphereMat, this.sphereMat, {
       friction: 0.7,
@@ -69,10 +68,8 @@ export class World {
     });
     this.physicsWorld.addContactMaterial(sphereContact);
 
-    const groundEntity = new Entity('ground');
-    groundEntity.addComponent(new MeshComponent(ground));
-    groundEntity.addComponent(new PhysicsComponent(groundBody));
-    this.engine.addEntity(groundEntity);
+    this.initTerrain();
+    this.engine.addPostUpdate(() => this.updateTerrain());
 
     // Seed a few objects
     for (let i = 0; i < 5; i++) this.addSphere();
@@ -198,5 +195,135 @@ export class World {
     ];
     const pick = spawners[Math.floor(Math.random() * spawners.length)];
     pick();
+  }
+
+  initTerrain() {
+    this.terrain.chunks.clear();
+    this.updateTerrain(true);
+  }
+
+  updateTerrain(force = false) {
+    const focusZ = this.engine.camera?.position?.z ?? 0;
+    const baseIndex = Math.floor(focusZ / this.terrain.chunkSize);
+    const minIndex = baseIndex - this.terrain.viewBehind;
+    const maxIndex = baseIndex + this.terrain.viewAhead;
+
+    for (let zi = minIndex; zi <= maxIndex; zi++) {
+      if (!this.terrain.chunks.has(zi)) this.createTerrainChunk(zi);
+    }
+
+    if (!force) {
+      for (const [zi, chunk] of this.terrain.chunks) {
+        if (zi < minIndex || zi > maxIndex) {
+          this.engine.removeEntity(chunk.entity);
+          this.terrain.chunks.delete(zi);
+        }
+      }
+    }
+  }
+
+  createTerrainChunk(zIndex) {
+    const { chunkSize, segments } = this.terrain;
+    const width = chunkSize;
+    const depth = chunkSize;
+    const startX = -width / 2;
+    const startZ = zIndex * chunkSize;
+
+    const geometry = new THREE.PlaneGeometry(width, depth, segments, segments);
+    geometry.rotateX(-Math.PI / 2);
+    geometry.translate(width / 2, 0, depth / 2);
+
+    const positions = geometry.attributes.position;
+    for (let i = 0; i < positions.count; i++) {
+      const localX = positions.getX(i);
+      const localZ = positions.getZ(i);
+      const worldX = localX + startX;
+      const worldZ = localZ + startZ;
+      const height = this.getHeight(worldX, worldZ);
+      positions.setY(i, height);
+    }
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({ color: 0xf5f9fc, roughness: 0.9, metalness: 0 });
+    const mesh = new THREE.Mesh(geometry, mat);
+    mesh.position.set(startX, 0, startZ);
+    mesh.receiveShadow = true;
+
+    const heightData = [];
+    const elementSize = width / segments;
+    for (let xi = 0; xi <= segments; xi++) {
+      heightData[xi] = [];
+      for (let zi = 0; zi <= segments; zi++) {
+        const worldX = startX + xi * elementSize;
+        const worldZ = startZ + zi * elementSize;
+        heightData[xi][zi] = this.getHeight(worldX, worldZ);
+      }
+    }
+
+    const shape = new CANNON.Heightfield(heightData, { elementSize });
+    const body = new CANNON.Body({
+      type: CANNON.Body.STATIC,
+      material: this.terrainMat,
+    });
+    body.addShape(shape);
+    body.position.set(startX, 0, startZ);
+
+    const entity = new Entity(`terrain-${zIndex}`);
+    entity.addComponent(new MeshComponent(mesh));
+    entity.addComponent(new PhysicsComponent(body));
+    this.engine.addEntity(entity);
+
+    this.terrain.chunks.set(zIndex, { entity, body, mesh });
+  }
+
+  getHeight(x, z) {
+    const { slope, mountainHeight } = this.terrain;
+    const baseSlope = -z * slope;
+
+    const ridge = 1 - Math.abs(this.fbm(x * 0.018, z * 0.018, 4) * 2 - 1);
+    const detail = this.fbm(x * 0.08, z * 0.08, 3);
+
+    return baseSlope + ridge * mountainHeight + detail * 1.8;
+  }
+
+  fbm(x, z, octaves = 4) {
+    let value = 0;
+    let amp = 1;
+    let freq = 1;
+    let max = 0;
+    for (let i = 0; i < octaves; i++) {
+      value += this.valueNoise(x * freq, z * freq) * amp;
+      max += amp;
+      amp *= 0.5;
+      freq *= 2;
+    }
+    return value / max;
+  }
+
+  valueNoise(x, z) {
+    const x0 = Math.floor(x);
+    const z0 = Math.floor(z);
+    const xf = x - x0;
+    const zf = z - z0;
+
+    const v00 = this.hash2(x0, z0);
+    const v10 = this.hash2(x0 + 1, z0);
+    const v01 = this.hash2(x0, z0 + 1);
+    const v11 = this.hash2(x0 + 1, z0 + 1);
+
+    const u = xf * xf * (3 - 2 * xf);
+    const v = zf * zf * (3 - 2 * zf);
+
+    const x1 = v00 * (1 - u) + v10 * u;
+    const x2 = v01 * (1 - u) + v11 * u;
+    return x1 * (1 - v) + x2 * v;
+  }
+
+  hash2(x, z) {
+    let h = x * 374761393 + z * 668265263 + this.terrain.seed * 144;
+    h = (h ^ (h >> 13)) * 1274126177;
+    h = h ^ (h >> 16);
+    return (h >>> 0) / 4294967295;
   }
 }
