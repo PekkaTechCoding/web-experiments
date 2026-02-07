@@ -254,24 +254,16 @@ export class World {
     mesh.rotation.y = this.terrain.yaw;
     mesh.receiveShadow = true;
 
-    const heightData = [];
-    const elementSize = width / segments;
-    for (let xi = 0; xi <= segments; xi++) {
-      heightData[xi] = [];
-      for (let zi = 0; zi <= segments; zi++) {
-        const worldX = startX + xi * elementSize;
-        const worldZ = startZ + zi * elementSize;
-        heightData[xi][zi] = this.getHeight(worldX, worldZ);
-      }
-    }
+    const vertices = Array.from(positions.array);
+    const indexArray = geometry.index ? Array.from(geometry.index.array) : null;
+    const indices = indexArray || Array.from({ length: vertices.length / 3 }, (_, i) => i);
 
-    const shape = new CANNON.Heightfield(heightData, { elementSize });
+    const shape = new CANNON.Trimesh(vertices, indices);
     const body = new CANNON.Body({
       type: CANNON.Body.STATIC,
       material: this.terrainMat,
     });
-    const shapeOffset = new CANNON.Vec3(-width / 2, 0, -depth / 2);
-    body.addShape(shape, shapeOffset);
+    body.addShape(shape);
     body.position.set(centerX, this.terrain.heightOffset, centerZ);
     body.quaternion.setFromEuler(0, this.terrain.yaw, 0);
 
