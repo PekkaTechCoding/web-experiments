@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Experiment 2 — 3D Physics</title>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    body { overflow: hidden; background: #e8f4f8; }
+    canvas { display: block; }
+    #hud {
+      position: fixed; left: 12px; top: 12px; color: #2c5aa0;
+      font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      opacity: 0.8; user-select: none; font-weight: 500;
+    }
+    #debugToggle {
+      position: fixed; right: 12px; top: 12px;
+      width: 36px; height: 36px; border-radius: 999px;
+      border: none; background: rgba(255,255,255,0.85);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      cursor: pointer; font-size: 18px;
+    }
+    #debugToggle.active {
+      background: #2c5aa0; color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">❄️ Winter Physics — Tap to add objects</div>
+  <button id="debugToggle" title="Toggle physics debug">🧪</button>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>eruda.init();</script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.161.0/build/three.module.js",
+        "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+      }
+    }
+  </script>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
