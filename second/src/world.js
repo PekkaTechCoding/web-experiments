@@ -107,6 +107,7 @@ export class World {
     this.engine.addPostUpdate(() => this.updateTerrain());
 
     this.addPlayer();
+    this.engine.addPostUpdate((dt) => this.updateCameraFollow(dt));
   }
 
   addSphere(x = (Math.random() - 0.5) * 6, y = 12 + Math.random() * 6, z = (Math.random() - 0.5) * 6) {
@@ -198,10 +199,15 @@ export class World {
 
   addPlayer() {
     const group = this.assets.createSkierMesh();
-    group.position.set(0, 3, 0);
 
     const radius = 0.35;
     const height = 1.2;
+    const startX = 0;
+    const startZ = 0;
+    const groundY = this.getHeight(startX, startZ);
+    const startY = groundY + height + radius + 0.6;
+    group.position.set(startX, startY, startZ);
+
     const cyl = new CANNON.Cylinder(radius, radius, height, 8);
     const sphereTop = new CANNON.Sphere(radius);
     const sphereBottom = new CANNON.Sphere(radius);
@@ -209,7 +215,7 @@ export class World {
     const body = new CANNON.Body({
       mass: 4,
       material: this.skierMat,
-      position: new CANNON.Vec3(0, 3, 0),
+      position: new CANNON.Vec3(startX, startY, startZ),
       linearDamping: 0.05,
       angularDamping: 0.9,
       fixedRotation: true,
@@ -225,6 +231,7 @@ export class World {
     entity.addComponent(new PhysicsComponent(body));
     entity.addScript(new SkierController(this));
     this.engine.addEntity(entity);
+    this.player = entity;
   }
 
   async addTreeModel(url, position = { x: 0, y: 0, z: 0 }) {
@@ -455,6 +462,24 @@ export class World {
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
     return entity;
+  }
+
+
+  updateCameraFollow(dt) {
+    if (!this.player || !this.engine?.camera) return;
+    const body = this.player.getComponent('physics').body;
+    const cam = this.engine.camera;
+    const headingQuat = this.player.getComponent('mesh').mesh.quaternion;
+
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(headingQuat).normalize();
+    const desired = new THREE.Vector3(
+      body.position.x - forward.x * 8,
+      body.position.y + 4,
+      body.position.z - forward.z * 8,
+    );
+
+    cam.position.lerp(desired, Math.min(1, dt * 3));
+    cam.lookAt(body.position.x, body.position.y + 1.2, body.position.z);
   }
 
   getHeight(x, z) {

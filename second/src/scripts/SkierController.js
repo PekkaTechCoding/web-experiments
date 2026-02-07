@@ -9,6 +9,7 @@ export class SkierController {
     airControl = 0.2,
     jumpImpulse = 4.5,
     sideFriction = 6.0,
+    carveStrength = 18.0,
   } = {}) {
     this.world = world;
     this.accel = accel;
@@ -16,6 +17,7 @@ export class SkierController {
     this.airControl = airControl;
     this.jumpImpulse = jumpImpulse;
     this.sideFriction = sideFriction;
+    this.carveStrength = carveStrength;
 
     this.heading = Math.PI; // facing -Z
     this.keys = new Set();
@@ -75,6 +77,12 @@ export class SkierController {
       const lateralSpeed = v.dot(right);
       const lateralForce = right.multiplyScalar(-lateralSpeed * this.sideFriction);
       body.applyForce(new CANNON.Vec3(lateralForce.x, lateralForce.y, lateralForce.z), body.position);
+
+      if (steer !== 0) {
+        const carveDir = right.clone().multiplyScalar(steer);
+        const carveForce = carveDir.multiplyScalar(this.carveStrength);
+        body.applyForce(new CANNON.Vec3(carveForce.x, 0, carveForce.z), body.position);
+      }
 
       const wantsJump = this.keys.has('Space');
       if (wantsJump && !this.jumpConsumed) {
