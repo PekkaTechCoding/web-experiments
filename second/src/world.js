@@ -271,7 +271,9 @@ export class World {
       material: this.terrainMat,
     });
     const shapeOffset = new CANNON.Vec3(-width / 2, 0, -depth / 2);
-    body.addShape(shape, shapeOffset);
+    const shapeQuat = new CANNON.Quaternion();
+    shapeQuat.setFromEuler(Math.PI, 0, 0);
+    body.addShape(shape, shapeOffset, shapeQuat);
     body.position.set(centerX, this.terrain.heightOffset, centerZ);
     body.quaternion.setFromEuler(0, this.terrain.yaw, 0);
 
