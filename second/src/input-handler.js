@@ -6,6 +6,7 @@ export class InputHandler {
 
     this.touchStart = null;
     this.touchId = null;
+    this.ignoreTouch = false;
     this.swipeThreshold = 30;
 
     this.handlePointerDown = this.handlePointerDown.bind(this);
@@ -27,6 +28,10 @@ export class InputHandler {
 
   handleTouchStart(event) {
     if (!event.changedTouches?.length) return;
+    if (event?.target?.closest?.('#debugToggle')) {
+      this.ignoreTouch = true;
+      return;
+    }
     event.preventDefault();
     const touch = event.changedTouches[0];
     this.touchId = touch.identifier;
@@ -34,8 +39,11 @@ export class InputHandler {
   }
 
   handleTouchEnd(event) {
+    if (this.ignoreTouch) {
+      this.ignoreTouch = false;
+      return;
+    }
     if (!this.touchStart || !event.changedTouches?.length) return;
-    if (event?.target?.closest?.('#debugToggle')) return;
     event.preventDefault();
     const touch = [...event.changedTouches].find((t) => t.identifier === this.touchId) || event.changedTouches[0];
     const dx = touch.clientX - this.touchStart.x;
@@ -54,6 +62,7 @@ export class InputHandler {
 
     this.touchStart = null;
     this.touchId = null;
+    this.ignoreTouch = false;
   }
 
   handleKeyDown(event) {
