@@ -131,7 +131,7 @@ export class World {
     leaves.castShadow = true;
 
     const group = new THREE.Group();
-    group.position.set(x, 0, z);
+    group.position.set(x, 1.5, z);
     group.add(trunk, leaves);
 
     const body = new CANNON.Body({
@@ -189,7 +189,7 @@ export class World {
     ski2.position.set(0.3, 0, -0.3);
 
     const group = new THREE.Group();
-    group.position.set(x, y, z);
+    group.position.set(x, y + 0.7, z);
     group.add(body, head, ski1, ski2);
 
     const phys = new CANNON.Body({
