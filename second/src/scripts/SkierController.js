@@ -59,8 +59,12 @@ export class SkierController {
       grounded = result.distance <= 1.2;
     }
 
-    const steer = (this.keys.has('ArrowLeft') || this.keys.has('KeyA') ? 1 : 0)
-      + (this.keys.has('ArrowRight') || this.keys.has('KeyD') ? -1 : 0);
+    const touchSteer = this.world?.input?.steer ?? 0;
+    const steer = Math.max(-1, Math.min(1,
+      (this.keys.has('ArrowLeft') || this.keys.has('KeyA') ? 1 : 0)
+      + (this.keys.has('ArrowRight') || this.keys.has('KeyD') ? -1 : 0)
+      + touchSteer
+    ));
 
     const turnStrength = grounded ? this.turnRate : this.turnRate * this.airControl;
     this.heading += steer * turnStrength * dt;
@@ -84,7 +88,7 @@ export class SkierController {
         body.applyForce(new CANNON.Vec3(carveForce.x, 0, carveForce.z), body.position);
       }
 
-      const wantsJump = this.keys.has('Space');
+      const wantsJump = this.keys.has('Space') || this.world?.input?.jump;
       if (wantsJump && !this.jumpConsumed) {
         body.applyImpulse(new CANNON.Vec3(0, this.jumpImpulse, 0), body.position);
         this.jumpConsumed = true;

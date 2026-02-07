@@ -1,6 +1,5 @@
 import { Engine } from './engine.js';
 import { World } from './world.js';
-import { InputHandler } from './input-handler.js';
 import { PhysicsDebug } from './physics-debug.js';
 
 const engine = new Engine();
@@ -42,10 +41,82 @@ window.addEventListener('keydown', (event) => {
   }
 });
 
-new InputHandler({
-  element: window,
-  onSwiped: (direction) => {
-    // Placeholder for future controls.
-    console.log('Swiped:', direction);
-  },
-});
+// Touch controls
+const inputState = { steer: 0, jump: false };
+world.input = inputState;
+
+const joystickZone = document.getElementById('joystickZone');
+const joystickBase = document.getElementById('joystickBase');
+const joystickThumb = document.getElementById('joystickThumb');
+const jumpButton = document.getElementById('jumpButton');
+
+let joystickActive = false;
+let joystickId = null;
+let origin = { x: 0, y: 0 };
+const radius = 50;
+
+const setStickVisible = (visible) => {
+  if (!joystickBase || !joystickThumb) return;
+  joystickBase.style.display = visible ? 'block' : 'none';
+  joystickThumb.style.display = visible ? 'block' : 'none';
+};
+
+const setStickPosition = (x, y, dx = 0, dy = 0) => {
+  if (!joystickBase || !joystickThumb) return;
+  joystickBase.style.left = `${x}px`;
+  joystickBase.style.top = `${y}px`;
+  joystickThumb.style.left = `${x + dx}px`;
+  joystickThumb.style.top = `${y + dy}px`;
+};
+
+if (joystickZone) {
+  joystickZone.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    joystickActive = true;
+    joystickId = event.pointerId;
+    origin = { x: event.clientX, y: event.clientY };
+    setStickVisible(true);
+    setStickPosition(origin.x, origin.y, 0, 0);
+    joystickZone.setPointerCapture(event.pointerId);
+  });
+
+  joystickZone.addEventListener('pointermove', (event) => {
+    if (!joystickActive || event.pointerId !== joystickId) return;
+    const dx = event.clientX - origin.x;
+    const dy = event.clientY - origin.y;
+    const dist = Math.hypot(dx, dy);
+    const scale = dist > radius ? radius / dist : 1;
+    const clampedX = dx * scale;
+    const clampedY = dy * scale;
+
+    inputState.steer = Math.max(-1, Math.min(1, -clampedX / radius));
+    setStickPosition(origin.x, origin.y, clampedX, clampedY);
+  });
+
+  const endStick = (event) => {
+    if (event && event.pointerId !== joystickId) return;
+    joystickActive = false;
+    joystickId = null;
+    inputState.steer = 0;
+    setStickVisible(false);
+  };
+
+  joystickZone.addEventListener('pointerup', endStick);
+  joystickZone.addEventListener('pointercancel', endStick);
+  joystickZone.addEventListener('pointerleave', endStick);
+}
+
+if (jumpButton) {
+  const setJump = (state) => {
+    inputState.jump = state;
+    jumpButton.classList.toggle('active', state);
+  };
+
+  jumpButton.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    setJump(true);
+  });
+  jumpButton.addEventListener('pointerup', () => setJump(false));
+  jumpButton.addEventListener('pointercancel', () => setJump(false));
+  jumpButton.addEventListener('pointerleave', () => setJump(false));
+}

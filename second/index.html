@@ -23,11 +23,55 @@
     #debugToggle.active {
       background: #2c5aa0; color: #fff;
     }
+    #touch-ui {
+      position: fixed; inset: 0; pointer-events: none;
+    }
+    #joystickZone {
+      position: fixed; left: 0; bottom: 0;
+      width: 45vw; height: 45vh;
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #joystickBase, #joystickThumb {
+      position: absolute; border-radius: 999px;
+      background: rgba(44,90,160,0.2);
+      border: 2px solid rgba(44,90,160,0.35);
+      width: 110px; height: 110px;
+      transform: translate(-50%, -50%);
+      display: none;
+    }
+    #joystickThumb {
+      width: 56px; height: 56px;
+      background: rgba(44,90,160,0.35);
+      border-color: rgba(44,90,160,0.6);
+    }
+    #jumpButton {
+      position: fixed; right: 20px; bottom: 80px;
+      width: 64px; height: 64px;
+      border-radius: 18px;
+      border: none;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      font-size: 26px;
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #jumpButton.active {
+      background: rgba(44,90,160,0.85);
+      color: white;
+    }
   </style>
 </head>
 <body>
-  <div id="hud">❄️ Winter Physics — Tap to add objects</div>
+  <div id="hud">❄️ Winter Physics — steer with thumbstick, jump on right</div>
   <button id="debugToggle" title="Toggle physics debug">🧪</button>
+  <div id="touch-ui">
+    <div id="joystickZone">
+      <div id="joystickBase"></div>
+      <div id="joystickThumb"></div>
+    </div>
+    <button id="jumpButton" aria-label="Jump">⤴️</button>
+  </div>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>
   <script type="importmap">
