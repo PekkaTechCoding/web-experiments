@@ -11,7 +11,7 @@ engine.run();
 
 new InputHandler({
   element: window,
-  onTapped: () => world.addSphere(),
+  onTapped: () => world.spawnRandomEntity(),
   onSwiped: (direction) => {
     // Placeholder for future controls.
     console.log('Swiped:', direction);
