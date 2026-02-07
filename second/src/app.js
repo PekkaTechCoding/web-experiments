@@ -123,7 +123,6 @@ if (jumpButton) {
 }
 
 if (boostButton) {
-  let cooling = false;
   const setBoost = (state) => {
     inputState.boost = state;
     boostButton.classList.toggle('active', state);
@@ -131,14 +130,9 @@ if (boostButton) {
 
   boostButton.addEventListener('pointerdown', (event) => {
     event.preventDefault();
-    if (cooling) return;
     setBoost(true);
-    cooling = true;
-    boostButton.classList.add('cooldown');
-    setTimeout(() => {
-      setBoost(false);
-      boostButton.classList.remove('cooldown');
-      cooling = false;
-    }, 1000);
   });
+  boostButton.addEventListener('pointerup', () => setBoost(false));
+  boostButton.addEventListener('pointercancel', () => setBoost(false));
+  boostButton.addEventListener('pointerleave', () => setBoost(false));
 }

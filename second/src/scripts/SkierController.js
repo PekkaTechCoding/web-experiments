@@ -10,8 +10,9 @@ export class SkierController {
     jumpImpulse = 4.5,
     sideFriction = 6.0,
     carveStrength = 18.0,
-    boostImpulse = 6.5,
+    boostImpulse = 12.0,
     boostCooldown = 1.0,
+    boostMinSpeed = 8.0,
   } = {}) {
     this.world = world;
     this.accel = accel;
@@ -22,7 +23,9 @@ export class SkierController {
     this.carveStrength = carveStrength;
     this.boostImpulse = boostImpulse;
     this.boostCooldown = boostCooldown;
+    this.boostMinSpeed = boostMinSpeed;
     this.boostTimer = 0;
+    this.boosting = false;
 
     this.heading = Math.PI; // facing -Z
     this.keys = new Set();
@@ -103,10 +106,22 @@ export class SkierController {
       if (!wantsJump) this.jumpConsumed = false;
 
       const wantsBoost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.world?.input?.boost;
+      if (!wantsBoost) this.boosting = false;
+
       if (wantsBoost && this.boostTimer === 0) {
-        const boost = forwardOnSlope.clone().multiplyScalar(this.boostImpulse);
-        body.applyImpulse(new CANNON.Vec3(boost.x, boost.y, boost.z), body.position);
-        this.boostTimer = this.boostCooldown;
+        this.boosting = true;
+      }
+
+      if (this.boosting) {
+        const v = new THREE.Vector3(body.velocity.x, body.velocity.y, body.velocity.z);
+        const speed = v.length();
+        if (speed < this.boostMinSpeed) {
+          const boost = forwardOnSlope.clone().multiplyScalar(this.boostImpulse);
+          body.applyImpulse(new CANNON.Vec3(boost.x, boost.y, boost.z), body.position);
+        } else {
+          this.boosting = false;
+          this.boostTimer = this.boostCooldown;
+        }
       }
     } else {
       const force = new CANNON.Vec3(forwardOnSlope.x, forwardOnSlope.y, forwardOnSlope.z);
