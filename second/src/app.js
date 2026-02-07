@@ -1,5 +1,6 @@
 import { Engine } from './engine.js';
 import { World } from './world.js';
+import { InputHandler } from './input-handler.js';
 
 const engine = new Engine();
 const world = new World(engine);
@@ -8,13 +9,11 @@ world.init();
 engine.start();
 engine.run();
 
-const addSphereFromInput = (event) => {
-  if (event?.button && event.button !== 0) return;
-  world.addSphere();
-};
-
-window.addEventListener('pointerdown', addSphereFromInput);
-window.addEventListener('touchstart', (event) => {
-  event.preventDefault();
-  addSphereFromInput(event);
-}, { passive: false });
+new InputHandler({
+  element: window,
+  onTapped: () => world.addSphere(),
+  onSwiped: (direction) => {
+    // Placeholder for future controls.
+    console.log('Swiped:', direction);
+  },
+});
