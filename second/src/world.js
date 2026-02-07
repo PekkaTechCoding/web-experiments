@@ -281,7 +281,7 @@ export class World {
 
   getHeight(x, z) {
     const { slope, mountainHeight } = this.terrain;
-    const baseSlope = -z * slope;
+    const baseSlope = z * slope;
 
     const ridge = 1 - Math.abs(this.fbm(x * 0.018, z * 0.018, 4) * 2 - 1);
     const detail = this.fbm(x * 0.08, z * 0.08, 3);
