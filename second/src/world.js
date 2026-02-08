@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { Entity, MeshComponent, PhysicsComponent } from './entity.js';
 import { SphereController } from './scripts/SphereController.js';
-import { SkierController } from './scripts/SkierController.js';
+// import { SkierController } from './scripts/SkierController.js';
+import { SkierController2 } from './scripts/SkierController2.js';
 import { AssetLoader } from './assets.js';
 
 export class World {
@@ -218,11 +219,12 @@ export class World {
       material: this.skierMat,
       position: new CANNON.Vec3(startX, startY, startZ),
       linearDamping: 0.001,
-      angularDamping: 0.9,
-      fixedRotation: true,
+      angularDamping: 0.5,
+      fixedRotation: false,
       collisionFilterGroup: 2,
       collisionFilterMask: 1,
     });
+    body.quaternion.setFromEuler(0, Math.PI, 0);
     body.addShape(cyl);
     body.addShape(sphereTop, new CANNON.Vec3(0, height / 2, 0));
     body.addShape(sphereBottom, new CANNON.Vec3(0, -height / 2, 0));
@@ -231,7 +233,7 @@ export class World {
     const entity = new Entity('player');
     entity.addComponent(new MeshComponent(group));
     entity.addComponent(new PhysicsComponent(body));
-    entity.addScript(new SkierController(this));
+    entity.addScript(new SkierController2(this));
     this.engine.addEntity(entity);
     this.player = entity;
   }

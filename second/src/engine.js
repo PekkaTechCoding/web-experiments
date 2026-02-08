@@ -42,6 +42,8 @@ export class Engine extends EngineCore {
     }
 
     this.lastTime = null;
+    this.slowMo1fps = false;
+    this.slowAccumulator = 0;
   }
 
   addEntity(entity) {
@@ -65,7 +67,16 @@ export class Engine extends EngineCore {
       requestAnimationFrame(animate);
       if (this.lastTime != null) {
         const dt = Math.min(0.033, (time - this.lastTime) / 1000);
-        this.update(dt);
+        if (this.slowMo1fps) {
+          this.slowAccumulator += dt;
+          if (this.slowAccumulator >= 0.33) {
+            this.update(0.33);
+            this.slowAccumulator -= 0.33;
+          }
+        } else {
+          this.update(dt);
+          this.slowAccumulator = 0;
+        }
       }
       this.lastTime = time;
       if (this.controls) this.controls.update();

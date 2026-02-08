@@ -10,6 +10,7 @@ engine.start();
 engine.run();
 
 const debugToggle = document.getElementById('debugToggle');
+const slowToggle = document.getElementById('slowToggle');
 const hud = document.getElementById('hud');
 const physicsDebug = new PhysicsDebug(engine.scene, world.physicsWorld, { color: 0xff3333 });
 
@@ -20,6 +21,12 @@ engine.addPostUpdate(() => {
     const lat = Number(world.debug.lateralSpeed) || 0;
     hud.textContent = `❄️ Winter Physics — steer with thumbstick, jump on right | fwd ${fwd.toFixed(2)} | lat ${lat.toFixed(2)}`;
   }
+  if (physicsDebug.enabled && world.debug?.groundNormal) {
+    physicsDebug.setGroundNormal(world.debug.groundNormal.position, world.debug.groundNormal.direction);
+  }
+  if (physicsDebug.enabled && world.debug?.forwardOnPlane) {
+    physicsDebug.setForwardOnPlane(world.debug.forwardOnPlane.position, world.debug.forwardOnPlane.direction);
+  }
 });
 
 const setDebug = (enabled) => {
@@ -27,7 +34,14 @@ const setDebug = (enabled) => {
   debugToggle?.classList.toggle('active', enabled);
 };
 
-setDebug(false);
+setDebug(true);
+
+const setSlow = (enabled) => {
+  engine.slowMo1fps = enabled;
+  slowToggle?.classList.toggle('active', enabled);
+};
+
+setSlow(false);
 
 if (debugToggle) {
   debugToggle.addEventListener('click', (event) => {
@@ -41,9 +55,24 @@ if (debugToggle) {
   }, { passive: false });
 }
 
+if (slowToggle) {
+  slowToggle.addEventListener('click', (event) => {
+    event.stopPropagation();
+    setSlow(!engine.slowMo1fps);
+  });
+  slowToggle.addEventListener('touchstart', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSlow(!engine.slowMo1fps);
+  }, { passive: false });
+}
+
 window.addEventListener('keydown', (event) => {
   if (event.key?.toLowerCase() === 'd') {
     setDebug(!physicsDebug.enabled);
+  }
+  if (event.key?.toLowerCase() === 't') {
+    setSlow(!engine.slowMo1fps);
   }
 });
 

@@ -195,10 +195,7 @@ export class SkierController {
     } else if (steer !== 0 && this.airAngularTorque > 0) {
       const torque = new CANNON.Vec3(0, this.airAngularTorque * steer, 0);
       body.applyTorque(torque);
-      console.log('Air steer: ' + steer, this.airAngularTorque);
-    } else {
-      console.log('NO Air steer: ' + steer);
-    }
+   }
 
     // Align body/mesh orientation with separate rates for normal and forward direction.
     const currentQuat = new THREE.Quaternion(

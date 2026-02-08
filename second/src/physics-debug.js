@@ -14,11 +14,29 @@ export class PhysicsDebug {
     this.scene.add(this.root);
     this.bodyGroups = new Map();
     this.material = new THREE.LineBasicMaterial({ color: this.color });
+    this.groundNormalArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(0, 0, 0),
+      2.0,
+      0x22aa55,
+    );
+    this.groundNormalArrow.visible = false;
+    this.root.add(this.groundNormalArrow);
+    this.forwardArrow = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, 1),
+      new THREE.Vector3(0, 0, 0),
+      2.0,
+      0x2266ff,
+    );
+    this.forwardArrow.visible = false;
+    this.root.add(this.forwardArrow);
   }
 
   setEnabled(enabled) {
     this.enabled = enabled;
     this.root.visible = enabled;
+    this.groundNormalArrow.visible = enabled;
+    this.forwardArrow.visible = enabled;
   }
 
   update() {
@@ -31,6 +49,20 @@ export class PhysicsDebug {
       group.position.copy(body.position);
       group.quaternion.copy(body.quaternion);
     }
+  }
+
+  setGroundNormal(position, direction) {
+    this.groundNormalArrow.position.copy(position);
+    this.groundNormalArrow.setDirection(direction.clone().normalize());
+    this.groundNormalArrow.visible = this.enabled;
+  }
+
+  setForwardOnPlane(position, direction) {
+    const dir = direction.clone();
+    if (dir.lengthSq() < 1e-6) return;
+    this.forwardArrow.position.copy(position);
+    this.forwardArrow.setDirection(dir.normalize());
+    this.forwardArrow.visible = this.enabled;
   }
 
   syncBodies() {

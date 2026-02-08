@@ -23,6 +23,16 @@
     #debugToggle.active {
       background: #2c5aa0; color: #fff;
     }
+    #slowToggle {
+      position: fixed; right: 12px; top: 56px;
+      width: 36px; height: 36px; border-radius: 999px;
+      border: none; background: rgba(255,255,255,0.85);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      cursor: pointer; font-size: 12px;
+    }
+    #slowToggle.active {
+      background: #2c5aa0; color: #fff;
+    }
     #touch-ui {
       position: fixed; inset: 0; pointer-events: none;
     }
@@ -80,6 +90,7 @@
 <body>
   <div id="hud">❄️ Winter Physics — steer with thumbstick, jump on right</div>
   <button id="debugToggle" title="Toggle physics debug">🧪</button>
+  <button id="slowToggle" title="Toggle 1 FPS">1fps</button>
   <div id="touch-ui">
     <div id="joystickZone">
       <div id="joystickBase"></div>
