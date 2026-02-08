@@ -217,7 +217,7 @@ export class World {
       mass: 4,
       material: this.skierMat,
       position: new CANNON.Vec3(startX, startY, startZ),
-      linearDamping: 0.05,
+      linearDamping: 0.02,
       angularDamping: 0.9,
       fixedRotation: true,
       collisionFilterGroup: 2,
@@ -489,7 +489,7 @@ export class World {
 
   getHeight(x, z) {
     const { slope, mountainHeight } = this.terrain;
-    const baseSlope = -z * slope;
+    const baseSlope = z * slope;
 
     const ridge = 1 - Math.abs(this.fbm(x * 0.014, z * 0.014, 5) * 2 - 1);
     const detail = this.fbm(x * 0.07, z * 0.07, 4);

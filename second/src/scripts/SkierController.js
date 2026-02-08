@@ -13,6 +13,8 @@ export class SkierController {
     boostImpulse = 12.0,
     boostCooldown = 1.0,
     boostMinSpeed = 8.0,
+    gravitySlide = 22.0,
+    minSlideAlign = 0.15,
   } = {}) {
     this.world = world;
     this.accel = accel;
@@ -24,6 +26,8 @@ export class SkierController {
     this.boostImpulse = boostImpulse;
     this.boostCooldown = boostCooldown;
     this.boostMinSpeed = boostMinSpeed;
+    this.gravitySlide = gravitySlide;
+    this.minSlideAlign = minSlideAlign;
     this.boostTimer = 0;
     this.boosting = false;
     this.boostRequested = false;
@@ -88,8 +92,10 @@ export class SkierController {
     const forwardOnSlope = forward.clone().sub(normal.clone().multiplyScalar(forward.dot(normal))).normalize();
 
     if (grounded) {
-      const force = new CANNON.Vec3(forwardOnSlope.x, forwardOnSlope.y, forwardOnSlope.z);
-      body.applyForce(force.scale(this.accel), body.position);
+      const downhill = new THREE.Vector3(0, -1, 0).projectOnPlane(normal).normalize();
+      const align = Math.max(this.minSlideAlign, downhill.dot(forwardOnSlope));
+      const slide = downhill.multiplyScalar(this.gravitySlide * align);
+      body.applyForce(new CANNON.Vec3(slide.x, slide.y, slide.z), body.position);
 
       const right = new THREE.Vector3().crossVectors(forwardOnSlope, normal).normalize();
       const v = new THREE.Vector3(body.velocity.x, body.velocity.y, body.velocity.z);
