@@ -16,8 +16,8 @@ const physicsDebug = new PhysicsDebug(engine.scene, world.physicsWorld, { color:
 engine.addPostUpdate(() => {
   physicsDebug.update();
   if (hud && world.debug) {
-    const fwd = world.debug.forwardSpeed ?? 0;
-    const lat = world.debug.lateralSpeed ?? 0;
+    const fwd = Number(world.debug.forwardSpeed) || 0;
+    const lat = Number(world.debug.lateralSpeed) || 0;
     hud.textContent = `❄️ Winter Physics — steer with thumbstick, jump on right | fwd ${fwd.toFixed(2)} | lat ${lat.toFixed(2)}`;
   }
 });

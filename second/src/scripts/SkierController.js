@@ -15,12 +15,15 @@ export class SkierController {
     misalignmentDeg = 30.0,
     normalAlignRate = 6.0,
     forwardAlignRate = 3.0,
+    normalSmoothRate = 1.0,
+    airUprightRate = 1.5,
     carveStrength = 18.0,
     boostImpulse = 48.0,
     boostCooldown = 0.0,
     boostMinSpeed = 12.0,
     gravitySlide = 22.0,
     minSlideAlign = 0.15,
+    airAngularTorque = 60.0,
   } = {}) {
     this.world = world;
     this.accel = accel;
@@ -34,12 +37,15 @@ export class SkierController {
     this.misalignmentDeg = misalignmentDeg;
     this.normalAlignRate = normalAlignRate;
     this.forwardAlignRate = forwardAlignRate;
+    this.normalSmoothRate = normalSmoothRate;
+    this.airUprightRate = airUprightRate;
     this.carveStrength = carveStrength;
     this.boostImpulse = boostImpulse;
     this.boostCooldown = boostCooldown;
     this.boostMinSpeed = boostMinSpeed;
     this.gravitySlide = gravitySlide;
     this.minSlideAlign = minSlideAlign;
+    this.airAngularTorque = airAngularTorque;
     this.boostTimer = 0;
     this.boosting = false;
     this.boostRequested = false;
@@ -69,7 +75,7 @@ export class SkierController {
     const footOffset = body.userData?.footOffset ?? 0.95;
     const down = new CANNON.Vec3(0, -1, 0);
     body.quaternion.vmult(down, down);
-    const probe = footOffset + 0.15;
+    const probe = footOffset + 0.25;
     const from = body.position.vadd(down.scale(footOffset));
     const to = body.position.vadd(down.scale(probe));
     const ray = new CANNON.Ray(from, to);
@@ -85,6 +91,15 @@ export class SkierController {
     if (hasHit && result.hasHit) {
       normal = new THREE.Vector3(result.hitNormalWorld.x, result.hitNormalWorld.y, result.hitNormalWorld.z).normalize();
       grounded = true;
+    }
+    if (grounded) {
+      if (!this.smoothedNormal) {
+        this.smoothedNormal = normal.clone();
+      } else {
+        const t = THREE.MathUtils.clamp(this.normalSmoothRate * dt, 0, 1);
+        this.smoothedNormal.lerp(normal, t).normalize();
+      }
+      normal = this.smoothedNormal.clone();
     }
 
     const touchSteer = this.world?.input?.steer ?? 0;
@@ -177,9 +192,12 @@ export class SkierController {
           this.boostTimer = this.boostCooldown;
         }
       }
+    } else if (steer !== 0 && this.airAngularTorque > 0) {
+      const torque = new CANNON.Vec3(0, this.airAngularTorque * steer, 0);
+      body.applyTorque(torque);
+      console.log('Air steer: ' + steer, this.airAngularTorque);
     } else {
-      const force = new CANNON.Vec3(forwardOnSlope.x, forwardOnSlope.y, forwardOnSlope.z);
-      body.applyForce(force.scale(this.accel * this.airControl), body.position);
+      console.log('NO Air steer: ' + steer);
     }
 
     // Align body/mesh orientation with separate rates for normal and forward direction.
@@ -190,24 +208,26 @@ export class SkierController {
       body.quaternion.w,
     );
 
-    const normalAlignT = THREE.MathUtils.clamp(this.normalAlignRate * dt, 0, 1);
-    const forwardAlignT = THREE.MathUtils.clamp(this.forwardAlignRate * dt, 0, 1);
+    const alignNormal = grounded ? normal : new THREE.Vector3(0, 1, 0);
+    const normalRate = grounded ? this.normalAlignRate : this.airUprightRate;
+    const normalAlignT = THREE.MathUtils.clamp(normalRate * dt, 0, 1);
+    const forwardAlignT = grounded ? THREE.MathUtils.clamp(this.forwardAlignRate * dt, 0, 1) : 0;
 
     const currentUp = new THREE.Vector3(0, 1, 0).applyQuaternion(currentQuat).normalize();
-    const qToNormal = new THREE.Quaternion().setFromUnitVectors(currentUp, normal);
+    const qToNormal = new THREE.Quaternion().setFromUnitVectors(currentUp, alignNormal);
     const qNormalStep = new THREE.Quaternion().slerpQuaternions(new THREE.Quaternion(), qToNormal, normalAlignT);
     const qAfterNormal = qNormalStep.multiply(currentQuat);
 
     const currentForward = new THREE.Vector3(0, 0, 1).applyQuaternion(qAfterNormal).normalize();
     let desiredForward = speed > 0.25 ? vDir.clone() : forwardOnSlope.clone();
-    desiredForward = desiredForward.sub(normal.clone().multiplyScalar(desiredForward.dot(normal))).normalize();
+    desiredForward = desiredForward.sub(alignNormal.clone().multiplyScalar(desiredForward.dot(alignNormal))).normalize();
     if (desiredForward.lengthSq() < 1e-6) desiredForward = currentForward.clone();
 
     const cross = new THREE.Vector3().crossVectors(currentForward, desiredForward);
-    const sin = normal.dot(cross);
+    const sin = alignNormal.dot(cross);
     const cos = THREE.MathUtils.clamp(currentForward.dot(desiredForward), -1, 1);
     const angle = Math.atan2(sin, cos);
-    const qYaw = new THREE.Quaternion().setFromAxisAngle(normal, angle * forwardAlignT);
+    const qYaw = new THREE.Quaternion().setFromAxisAngle(alignNormal, angle * forwardAlignT);
     const quat = qYaw.multiply(qAfterNormal);
 
     body.quaternion.set(quat.x, quat.y, quat.z, quat.w);
