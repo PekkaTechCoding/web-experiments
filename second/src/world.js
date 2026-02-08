@@ -141,6 +141,7 @@ export class World {
     entity.addComponent(new PhysicsComponent(body));
     entity.addScript(new SphereController());
     this.engine.addEntity(entity);
+    return entity;
   }
 
   addTree(x = (Math.random() - 0.5) * 12, y = 0, z = (Math.random() - 0.5) * 12) {
@@ -479,7 +480,11 @@ export class World {
     );
 
     cam.position.lerp(desired, Math.min(1, dt * 3));
-    cam.lookAt(body.position.x, body.position.y + 1.2, body.position.z);
+    if (this.engine.controls) {
+      this.engine.controls.target.set(body.position.x, body.position.y + 1.2, body.position.z);
+    } else {
+      cam.lookAt(body.position.x, body.position.y + 1.2, body.position.z);
+    }
   }
 
   getHeight(x, z) {
