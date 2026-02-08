@@ -30,7 +30,7 @@ export class World {
       segments: 64,
       viewAhead: 4,
       viewBehind: 1,
-      viewSide: 2,
+      viewSide: 1,
       chunks: new Map(),
       slope: 0.24,
       mountainHeight: 70,
