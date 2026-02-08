@@ -221,6 +221,7 @@ export class World {
       linearDamping: 0.001,
       angularDamping: 0.5,
       fixedRotation: false,
+      angularFactor: new CANNON.Vec3(0, 1, 0),
       collisionFilterGroup: 2,
       collisionFilterMask: 1,
     });
