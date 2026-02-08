@@ -28,7 +28,7 @@ export class World {
       seed: 1337,
       chunkSize: 80,
       segments: 64,
-      viewAhead: 4,
+      viewAhead: 2,
       viewBehind: 1,
       viewSide: 1,
       chunks: new Map(),
