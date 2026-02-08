@@ -9,8 +9,8 @@ export class SkierController2 {
     uprightDamping = 8.0,
     autoDownhillTorque = 1.5,
     yawDamping = 2.0,
-    boostSpeed = 5.0,
-    jumpSpeed = 5.0,
+    boostSpeed = 3.0,
+    jumpSpeed = 3.0,
     groundProbe = 0.20,
   } = {}) {
     this.world = world;
@@ -24,7 +24,6 @@ export class SkierController2 {
     this.groundProbe = groundProbe;
 
     this.keys = new Set();
-    this.jumpConsumed = false;
     this.boostRequested = false;
     this.onKeyDown = (e) => this.keys.add(e.code);
     this.onKeyUp = (e) => this.keys.delete(e.code);
@@ -121,7 +120,8 @@ export class SkierController2 {
     // Debug: expose ground normal for physics debug view
     if (this.world.debug) {
       const arrowPos = new THREE.Vector3(body.position.x, body.position.y, body.position.z);
-      this.world.debug.groundNormal = { position: arrowPos, direction: normal.clone().normalize() };
+      // this.world.debug.groundNormal = { position: arrowPos, direction: normal.clone().normalize() };
+      this.world.debug.groundNormal = { position: arrowPos, direction: alignNormal.clone().normalize() };
       this.world.debug.forwardOnPlane = { position: arrowPos, direction: forwardOnPlane.clone() };
     }
 
@@ -144,13 +144,13 @@ export class SkierController2 {
 
     // e) Align player upright to world Y (no surface alignment)
     {
-      const cross = new THREE.Vector3().crossVectors(up, worldUp);
-      const torqueVec = cross.multiplyScalar(this.uprightTorque * body.mass);
-      body.applyTorque(new CANNON.Vec3(torqueVec.x, torqueVec.y, torqueVec.z));
+      // const cross = new THREE.Vector3().crossVectors(up, worldUp);
+      // const torqueVec = cross.multiplyScalar(this.uprightTorque * body.mass);
+      // body.applyTorque(new CANNON.Vec3(torqueVec.x, torqueVec.y, torqueVec.z));
 
       const angVel = new THREE.Vector3(body.angularVelocity.x, body.angularVelocity.y, body.angularVelocity.z);
-      const damp = new THREE.Vector3(angVel.x, 0, angVel.z).multiplyScalar(-this.uprightDamping * body.mass);
-      body.applyTorque(new CANNON.Vec3(damp.x, damp.y, damp.z));
+      // const damp = new THREE.Vector3(angVel.x, 0, angVel.z).multiplyScalar(-this.uprightDamping * body.mass);
+      // body.applyTorque(new CANNON.Vec3(damp.x, damp.y, damp.z));
 
       const yawDamp = -angVel.y * this.yawDamping * body.mass;
       body.applyTorque(new CANNON.Vec3(0, yawDamp, 0));
@@ -158,22 +158,21 @@ export class SkierController2 {
 
     if (grounded) {
       // f) Jump: set normal speed to jumpSpeed
-      if (wantsJump && !this.jumpConsumed) {
-        const vNormal = v.dot(alignNormal);
+      if (wantsJump) {
+        const vNormal = Math.max(0, v.dot(alignNormal));
         const dv = Math.max(0, this.jumpSpeed - vNormal);
         if (dv > 0) {
           const impulse = alignNormal.clone().multiplyScalar(dv * body.mass);
           body.applyImpulse(new CANNON.Vec3(impulse.x, impulse.y, impulse.z), body.position);
+          console.log('Jump! dv=', dv, 'impulse=', impulse);
         }
-        this.jumpConsumed = true;
       }
-      if (!wantsJump) this.jumpConsumed = false;
 
       // i) Boost: set surface speed to boostSpeed
       if (wantsBoost) {
         this.boostRequested = false;
         if (forwardOnPlane.lengthSq() > 1e-6) {
-          const along = vPlane.dot(forwardOnPlane);
+          const along = Math.max(0, vPlane.dot(forwardOnPlane));
           const dv = Math.max(0, this.boostSpeed - along);
           if (dv > 0) {
             const impulse = forwardOnPlane.clone().multiplyScalar(dv * body.mass);
@@ -182,6 +181,8 @@ export class SkierController2 {
         }
       }
     }
+    this.wantsJump = false;
+    this.wantsBoost = false;
 
     // j) Visual sync (no direct rotation changes)
     mesh.position.copy(body.position);
