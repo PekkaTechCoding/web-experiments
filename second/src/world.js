@@ -217,7 +217,7 @@ export class World {
       mass: 4,
       material: this.skierMat,
       position: new CANNON.Vec3(startX, startY, startZ),
-      linearDamping: 0.02,
+      linearDamping: 0.005,
       angularDamping: 0.9,
       fixedRotation: true,
       collisionFilterGroup: 2,

@@ -8,7 +8,8 @@ export class SkierController {
     turnRate = 1.6,
     airControl = 0.2,
     jumpImpulse = 4.5,
-    sideFriction = 6.0,
+    sideFriction = 8.0,
+    forwardDrag = 0.4,
     carveStrength = 18.0,
     boostImpulse = 48.0,
     boostCooldown = 0.0,
@@ -22,6 +23,7 @@ export class SkierController {
     this.airControl = airControl;
     this.jumpImpulse = jumpImpulse;
     this.sideFriction = sideFriction;
+    this.forwardDrag = forwardDrag;
     this.carveStrength = carveStrength;
     this.boostImpulse = boostImpulse;
     this.boostCooldown = boostCooldown;
@@ -102,6 +104,10 @@ export class SkierController {
       const lateralSpeed = v.dot(right);
       const lateralForce = right.multiplyScalar(-lateralSpeed * this.sideFriction);
       body.applyForce(new CANNON.Vec3(lateralForce.x, lateralForce.y, lateralForce.z), body.position);
+
+      const forwardSpeed = v.dot(forwardOnSlope);
+      const forwardForce = forwardOnSlope.clone().multiplyScalar(-forwardSpeed * this.forwardDrag);
+      body.applyForce(new CANNON.Vec3(forwardForce.x, forwardForce.y, forwardForce.z), body.position);
 
       if (steer !== 0) {
         const carveDir = right.clone().multiplyScalar(steer);
