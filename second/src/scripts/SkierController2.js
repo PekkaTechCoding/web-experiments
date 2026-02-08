@@ -7,8 +7,7 @@ export class SkierController2 {
     steerTorque = 18.0,
     uprightTorque = 50.0,
     uprightDamping = 8.0,
-    lateralFriction = 12.0,
-    driveForce = 6.0,
+    autoDownhillTorque = 3.0,
     boostSpeed = 5.0,
     jumpSpeed = 5.0,
     groundProbe = 0.20,
@@ -17,8 +16,7 @@ export class SkierController2 {
     this.steerTorque = steerTorque;
     this.uprightTorque = uprightTorque;
     this.uprightDamping = uprightDamping;
-    this.lateralFriction = lateralFriction;
-    this.driveForce = driveForce;
+    this.autoDownhillTorque = autoDownhillTorque;
     this.boostSpeed = boostSpeed;
     this.jumpSpeed = jumpSpeed;
     this.groundProbe = groundProbe;
@@ -94,7 +92,8 @@ export class SkierController2 {
     const currentQuat = new THREE.Quaternion(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(currentQuat).normalize();
     const up = new THREE.Vector3(0, 1, 0).applyQuaternion(currentQuat).normalize();
-    const alignNormal = grounded ? normal : new THREE.Vector3(0, 1, 0);
+    const worldUp = new THREE.Vector3(0, 1, 0);
+    const alignNormal = grounded ? normal : worldUp;
 
     let forwardOnPlane = forward.clone().sub(alignNormal.clone().multiplyScalar(forward.dot(alignNormal)));
     if (forwardOnPlane.lengthSq() > 1e-6) forwardOnPlane.normalize();
@@ -129,34 +128,31 @@ export class SkierController2 {
       const axis = new CANNON.Vec3(alignNormal.x, alignNormal.y, alignNormal.z);
       const torque = axis.scale(this.steerTorque * steer * body.mass);
       body.applyTorque(torque);
+    } else if (grounded && surfaceSpeed > 0.2) {
+      const downhill = new THREE.Vector3(0, -1, 0).projectOnPlane(alignNormal).normalize();
+      if (downhill.lengthSq() > 1e-6 && forwardOnPlane.lengthSq() > 1e-6) {
+        const crossY = new THREE.Vector3().crossVectors(forwardOnPlane, downhill).y;
+        const align = THREE.MathUtils.clamp(forwardOnPlane.dot(downhill), -1, 1);
+        const angle = Math.acos(align);
+        const turn = Math.sign(crossY) * angle;
+        const torque = new CANNON.Vec3(0, 1, 0).scale(this.autoDownhillTorque * turn * body.mass);
+        body.applyTorque(torque);
+      }
     }
 
-    // e) Align player upright / to surface normal
+    // e) Align player upright to world Y (no surface alignment)
     {
-      const cross = new THREE.Vector3().crossVectors(up, alignNormal);
+      const cross = new THREE.Vector3().crossVectors(up, worldUp);
       const torqueVec = cross.multiplyScalar(this.uprightTorque * body.mass);
       body.applyTorque(new CANNON.Vec3(torqueVec.x, torqueVec.y, torqueVec.z));
 
       const angVel = new THREE.Vector3(body.angularVelocity.x, body.angularVelocity.y, body.angularVelocity.z);
-      const damp = angVel.multiplyScalar(-this.uprightDamping * body.mass);
+      const damp = new THREE.Vector3(angVel.x, 0, angVel.z).multiplyScalar(-this.uprightDamping * body.mass);
       body.applyTorque(new CANNON.Vec3(damp.x, damp.y, damp.z));
     }
 
     if (grounded) {
-      // f) Small forward drive force to keep momentum
-      if (forwardOnPlane.lengthSq() > 1e-6) {
-        const drive = forwardOnPlane.clone().multiplyScalar(this.driveForce * body.mass);
-        body.applyForce(new CANNON.Vec3(drive.x, drive.y, drive.z), body.position);
-      }
-
-      // g) Lateral velocity damping on surface (remove ski-orthogonal component)
-      if (forwardOnPlane.lengthSq() > 1e-6) {
-        const lateral = vPlane.clone().sub(forwardOnPlane.clone().multiplyScalar(vPlane.dot(forwardOnPlane)));
-        const force = lateral.multiplyScalar(-this.lateralFriction * body.mass);
-        body.applyForce(new CANNON.Vec3(force.x, force.y, force.z), body.position);
-      }
-
-      // h) Jump: set normal speed to jumpSpeed
+      // f) Jump: set normal speed to jumpSpeed
       if (wantsJump && !this.jumpConsumed) {
         const vNormal = v.dot(alignNormal);
         const dv = Math.max(0, this.jumpSpeed - vNormal);
