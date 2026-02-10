@@ -39,6 +39,8 @@ export class World {
       slope: 0.24,
       mountainHeight: 70,
       heightOffset: 0,
+      valleyWidthChunks: 1.5,
+      valleyDepth: 120,
       scatter: {
         trees: 8,
         ramps: 2,
@@ -526,13 +528,16 @@ export class World {
   }
 
   getHeight(x, z) {
-    const { slope, mountainHeight } = this.terrain;
+    const { slope, mountainHeight, valleyWidthChunks, valleyDepth, chunkSize } = this.terrain;
     const baseSlope = z * slope;
+    const valleyWidth = chunkSize * valleyWidthChunks;
+    const valleyT = x / valleyWidth;
+    const valley = valleyDepth * valleyT * valleyT;
 
     const ridge = 1 - Math.abs(this.fbm(x * 0.014, z * 0.014, 5) * 2 - 1);
     const detail = this.fbm(x * 0.07, z * 0.07, 4);
 
-    return baseSlope + ridge * mountainHeight + detail * 12.0;
+    return baseSlope + valley + ridge * mountainHeight + detail * 12.0;
   }
 
   fbm(x, z, octaves = 4) {
