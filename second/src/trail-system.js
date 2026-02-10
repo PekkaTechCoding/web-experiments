@@ -39,7 +39,6 @@ export class TrailSystem {
 
   updateOrigin(centerX, centerZ) {
     this.origin.set(centerX, centerZ);
-    this.clear();
   }
 
   clear() {
