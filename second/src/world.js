@@ -122,8 +122,12 @@ export class World {
 
     this.addPlayer();
     this.engine.addPostUpdate((dt) => this.updateCameraFollow(dt));
-    this.engine.addPostUpdate(() => this.trails?.updateUniforms());
     this.engine.addPostUpdate(() => {
+      if (this.player && this.trails) {
+        const body = this.player.getComponent(PhysicsComponent.type).body;
+        this.trails.updateOrigin(body.position.x, body.position.z);
+        this.trails.updateUniforms();
+      }
       if (this.player && this.deformationPatch) {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         this.deformationPatch.updateCenter(body.position.x, body.position.z);
