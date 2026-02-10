@@ -13,6 +13,8 @@ export class TrailSystem {
     this.stampRadius = stampRadius;
     this.stampStrength = stampStrength;
     this.origin = new THREE.Vector2(0, 0);
+    this.lastOrigin = null;
+    this._tempCanvas = null;
 
     this.canvas = canvas || document.createElement('canvas');
     this.canvas.width = resolution;
@@ -38,7 +40,51 @@ export class TrailSystem {
   }
 
   updateOrigin(centerX, centerZ) {
-    this.origin.set(centerX, centerZ);
+    const next = new THREE.Vector2(centerX, centerZ);
+    if (!this.lastOrigin) {
+      this.origin.copy(next);
+      this.lastOrigin = next.clone();
+      return;
+    }
+
+    const dx = next.x - this.lastOrigin.x;
+    const dz = next.y - this.lastOrigin.y;
+    this.origin.copy(next);
+
+    if (Math.abs(dx) < 1e-6 && Math.abs(dz) < 1e-6) return;
+
+    if (Math.abs(dx) > this.size || Math.abs(dz) > this.size) {
+      this.clear();
+      this.lastOrigin.copy(next);
+      return;
+    }
+
+    const offsetX = -(dx / this.size) * this.resolution;
+    const offsetY = (dz / this.size) * this.resolution;
+    const temp = this._getTempCanvas();
+    if (!temp) {
+      this.lastOrigin.copy(next);
+      return;
+    }
+
+    const tctx = temp.getContext('2d');
+    tctx.clearRect(0, 0, this.resolution, this.resolution);
+    tctx.drawImage(this.canvas, 0, 0);
+
+    this.ctx.clearRect(0, 0, this.resolution, this.resolution);
+    this.ctx.drawImage(temp, offsetX, offsetY);
+    this.texture.needsUpdate = true;
+    this.lastOrigin.copy(next);
+  }
+
+  _getTempCanvas() {
+    if (this._tempCanvas) return this._tempCanvas;
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = this.resolution;
+    canvas.height = this.resolution;
+    this._tempCanvas = canvas;
+    return canvas;
   }
 
   clear() {
