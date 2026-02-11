@@ -32,9 +32,10 @@ export class Entity {
 export class MeshComponent {
   static type = 'mesh';
 
-  constructor(mesh) {
+  constructor(mesh, {syncFromBody = true} = {}) {
     this.type = MeshComponent.type;
     this.mesh = mesh;
+    this.syncFromBody = syncFromBody;
   }
 }
 

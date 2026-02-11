@@ -58,7 +58,7 @@ export class EngineCore {
         if (entity.hasComponents(MeshComponent.type, PhysicsComponent.type)) {
           const mesh = entity.getComponent(MeshComponent.type).mesh;
           const body = entity.getComponent(PhysicsComponent.type).body;
-          if (mesh) {
+          if (mesh && entity.getComponent(MeshComponent.type).syncFromBody) {
             mesh.position.copy(body.position);
             mesh.quaternion.copy(body.quaternion);
           }

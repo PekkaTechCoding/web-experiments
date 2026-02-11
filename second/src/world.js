@@ -13,7 +13,8 @@ export class World {
   constructor(engine, {
     enableTrails = false,
     enableDeformationPatch = false,
-    enableDeformationTexture = true,
+    enableDeformationTexture = false,
+    enableTerrainMeshDeform = true,
   } = {}) {
     this.engine = engine;
     this.entities = [];
@@ -27,6 +28,7 @@ export class World {
     this.trails = enableTrails ? new TrailSystem() : null;
     this.deformationPatch = enableDeformationPatch ? new DeformationPatch({ scene: this.engine.scene }) : null;
     this.deformationTexture = enableDeformationTexture ? new DeformationTexture() : null;
+    this.enableTerrainMeshDeform = enableTerrainMeshDeform;
 
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
@@ -45,8 +47,13 @@ export class World {
       slope: 0.24,
       mountainHeight: 70,
       heightOffset: 0,
+      renderOffset: 0.4,
       valleyWidthChunks: 1.5,
       valleyDepth: 120,
+      deform: {
+        radius: 0.65,
+        maxDepth: 1,//0.18,
+      },
       scatter: {
         trees: 8,
         ramps: 2,
@@ -371,7 +378,7 @@ export class World {
     this.trails?.applyToMaterial(mat);
     this.deformationTexture?.applyToMaterial(mat);
     const mesh = new THREE.Mesh(geometry, mat);
-    mesh.position.set(centerX, 0, centerZ);
+    mesh.position.set(centerX, this.terrain.renderOffset, centerZ);
     mesh.receiveShadow = true;
 
     const vertices = Array.from(positions.array);
@@ -387,13 +394,22 @@ export class World {
     body.position.set(centerX, this.terrain.heightOffset, centerZ);
 
     const entity = new Entity(`terrain-${xIndex}-${zIndex}`);
-    entity.addComponent(new MeshComponent(mesh));
+    entity.addComponent(new MeshComponent(mesh, { syncFromBody: false }));
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
 
     const scatterEntities = this.scatterTerrainEntities(centerX, centerZ, width, depth);
 
-    this.terrain.chunks.set(`${xIndex},${zIndex}`, { entity, body, mesh, scatterEntities });
+    const basePositions = new Float32Array(positions.array);
+    this.terrain.chunks.set(`${xIndex},${zIndex}`, {
+      entity,
+      body,
+      mesh,
+      scatterEntities,
+      basePositions,
+      centerX,
+      centerZ,
+    });
   }
 
   scatterTerrainEntities(centerX, centerZ, width, depth) {
@@ -524,6 +540,78 @@ export class World {
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
     return entity;
+  }
+
+  getChunkIndices(x, z) {
+    const { chunkSize } = this.terrain;
+    return {
+      xi: Math.floor(x / chunkSize),
+      zi: Math.floor(z / chunkSize),
+    };
+  }
+
+  stampTerrain(x, z, strength = 1) {
+    if (!this.enableTerrainMeshDeform) return;
+    const { chunkSize, deform } = this.terrain;
+    const { xi, zi } = this.getChunkIndices(x, z);
+
+    const stampChunk = (cx, cz) => this.stampTerrainInChunk(x, z, cx, cz, strength);
+    stampChunk(xi, zi);
+
+    const centerX = (xi + 0.5) * chunkSize;
+    const centerZ = (zi + 0.5) * chunkSize;
+    const localX = x - centerX;
+    const localZ = z - centerZ;
+    const half = chunkSize / 2;
+    const radius = deform.radius;
+
+    const nearLeft = localX < -half + radius;
+    const nearRight = localX > half - radius;
+    const nearBack = localZ < -half + radius;
+    const nearFront = localZ > half - radius;
+
+    if (nearLeft) stampChunk(xi - 1, zi);
+    if (nearRight) stampChunk(xi + 1, zi);
+    if (nearBack) stampChunk(xi, zi - 1);
+    if (nearFront) stampChunk(xi, zi + 1);
+    if (nearLeft && nearBack) stampChunk(xi - 1, zi - 1);
+    if (nearLeft && nearFront) stampChunk(xi - 1, zi + 1);
+    if (nearRight && nearBack) stampChunk(xi + 1, zi - 1);
+    if (nearRight && nearFront) stampChunk(xi + 1, zi + 1);
+  }
+
+  stampTerrainInChunk(worldX, worldZ, xIndex, zIndex, strength = 1) {
+    const key = `${xIndex},${zIndex}`;
+    const chunk = this.terrain.chunks.get(key);
+    if (!chunk?.mesh || !chunk.basePositions) return;
+
+    const geometry = chunk.mesh.geometry;
+    const positions = geometry.attributes.position;
+    const base = chunk.basePositions;
+
+    const localX = worldX - chunk.centerX;
+    const localZ = worldZ - chunk.centerZ;
+    const { radius, maxDepth } = this.terrain.deform;
+    const radiusSq = radius * radius;
+
+    for (let i = 0; i < positions.count; i++) {
+      const vx = positions.getX(i);
+      const vz = positions.getZ(i);
+      const dx = vx - localX;
+      const dz = vz - localZ;
+      const distSq = dx * dx + dz * dz;
+      if (distSq > radiusSq) continue;
+      const dist = Math.sqrt(distSq);
+      const falloff = 1 - dist / radius;
+      const depth = maxDepth * falloff * strength;
+      const baseY = base[i * 3 + 1];
+      const target = baseY - depth;
+      const current = positions.getY(i);
+      if (target < current) positions.setY(i, target);
+    }
+
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
   }
 
 
