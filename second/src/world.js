@@ -6,10 +6,15 @@ import { SphereController } from './scripts/SphereController.js';
 import { SkierController2 } from './scripts/SkierController2.js';
 import { TrailSystem } from './trail-system.js';
 import { DeformationPatch } from './deformation-patch.js';
+import { DeformationTexture } from './deformation-texture.js';
 import { AssetLoader } from './assets.js';
 
 export class World {
-  constructor(engine) {
+  constructor(engine, {
+    enableTrails = false,
+    enableDeformationPatch = false,
+    enableDeformationTexture = true,
+  } = {}) {
     this.engine = engine;
     this.entities = [];
     this.physicsWorld = new CANNON.World({
@@ -19,8 +24,9 @@ export class World {
     this.physicsWorld.allowSleep = true;
 
     this.assets = new AssetLoader();
-    this.trails = new TrailSystem();
-    this.deformationPatch = new DeformationPatch({ scene: this.engine.scene });
+    this.trails = enableTrails ? new TrailSystem() : null;
+    this.deformationPatch = enableDeformationPatch ? new DeformationPatch({ scene: this.engine.scene }) : null;
+    this.deformationTexture = enableDeformationTexture ? new DeformationTexture() : null;
 
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
@@ -132,6 +138,11 @@ export class World {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         const groundY = this.getHeight(body.position.x, body.position.z);
         this.deformationPatch.updateCenter(body.position.x, body.position.z, groundY);
+      }
+      if (this.player && this.deformationTexture) {
+        const body = this.player.getComponent(PhysicsComponent.type).body;
+        this.deformationTexture.updateOrigin(body.position.x, body.position.z);
+        this.deformationTexture.updateUniforms();
       }
     });
   }
@@ -268,6 +279,10 @@ export class World {
     if (this.deformationPatch) {
       this.deformationPatch.updateCenter(startX, startZ, groundY);
     }
+    if (this.deformationTexture) {
+      this.deformationTexture.updateOrigin(startX, startZ);
+      this.deformationTexture.updateUniforms();
+    }
   }
 
   async addTreeModel(url, position = { x: 0, y: 0, z: 0 }) {
@@ -354,6 +369,7 @@ export class World {
 
     const mat = new THREE.MeshStandardMaterial({ color: 0xf5f9fc, roughness: 0.9, metalness: 0 });
     this.trails?.applyToMaterial(mat);
+    this.deformationTexture?.applyToMaterial(mat);
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.position.set(centerX, 0, centerZ);
     mesh.receiveShadow = true;

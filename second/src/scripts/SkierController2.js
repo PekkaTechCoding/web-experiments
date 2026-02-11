@@ -262,6 +262,8 @@ export class SkierController2 {
             this.world.trails?.stamp(rightPos.x, rightPos.z);
             this.world.deformationPatch?.stamp(leftPos.x, leftPos.z, 1);
             this.world.deformationPatch?.stamp(rightPos.x, rightPos.z, 1);
+            this.world.deformationTexture?.stamp(leftPos.x, leftPos.z);
+            this.world.deformationTexture?.stamp(rightPos.x, rightPos.z);
           }
         }
       }
