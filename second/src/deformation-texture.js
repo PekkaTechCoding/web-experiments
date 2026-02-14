@@ -4,15 +4,17 @@ export class DeformationTexture {
   constructor({
     size = 120,
     resolution = 512,
-    depth = 0.15,
-    stampRadius = 0.4,
-    stampStrength = 0.4,
+    depth = 0.2,
+    stampWidth = 0.5,
+    stampLength = 1.2,
+    stampStrength = 0.65,
     canvas = null,
   } = {}) {
     this.size = size;
     this.resolution = resolution;
     this.depth = depth;
-    this.stampRadius = stampRadius;
+    this.stampWidth = stampWidth;
+    this.stampLength = stampLength;
     this.stampStrength = stampStrength;
     this.origin = new THREE.Vector2(0, 0);
 
@@ -53,17 +55,16 @@ export class DeformationTexture {
     const { u, v } = this.worldToUV(worldX, worldZ);
     const px = u * this.resolution;
     const py = v * this.resolution;
-    const radius = (this.stampRadius / this.size) * this.resolution;
+    const halfW = (this.stampWidth / this.size) * this.resolution * 0.5;
+    const halfL = (this.stampLength / this.size) * this.resolution * 0.5;
 
     const alpha = this.stampStrength;
     this.ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-    this.ctx.beginPath();
-    this._drawWrappedCircle(px, py, radius);
-    this.ctx.fill();
+    this._drawWrappedRect(px, py, halfW, halfL);
     this.texture.needsUpdate = true;
   }
 
-  _drawWrappedCircle(px, py, radius) {
+  _drawWrappedRect(px, py, halfW, halfL) {
     const res = this.resolution;
     const positions = [
       [px, py],
@@ -73,9 +74,8 @@ export class DeformationTexture {
       [px, py - res],
     ];
     for (const [x, y] of positions) {
-      if (x + radius < 0 || x - radius > res || y + radius < 0 || y - radius > res) continue;
-      this.ctx.moveTo(x + radius, y);
-      this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+      if (x + halfW < 0 || x - halfW > res || y + halfL < 0 || y - halfL > res) continue;
+      this.ctx.fillRect(x - halfW, y - halfL, halfW * 2, halfL * 2);
     }
   }
 

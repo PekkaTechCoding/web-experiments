@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { Entity, MeshComponent, PhysicsComponent } from '../src/entity.js';
-import { SkierController } from '../src/scripts/SkierController.js';
+import { SkierController2 } from '../src/scripts/SkierController2.js';
 
-describe('SkierController', () => {
+describe('SkierController2', () => {
   it('updates without throwing and aligns velocity toward skis', () => {
     const world = {
       physicsWorld: {
@@ -29,7 +29,7 @@ describe('SkierController', () => {
     entity.addComponent(new MeshComponent(mesh));
     entity.addComponent(new PhysicsComponent(body));
 
-    const controller = new SkierController(world);
+    const controller = new SkierController2(world);
     entity.addScript(controller);
 
     expect(() => controller.update(0.016)).not.toThrow();
