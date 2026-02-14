@@ -445,7 +445,7 @@ export class World {
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
 
-    const scatterEntities = this.scatterTerrainEntities(centerX, centerZ, width, depth);
+    const scatterEntities = this.scatterTerrainEntities(xIndex, zIndex, centerX, centerZ, width, depth);
 
     const basePositions = new Float32Array(positions.array);
     this.terrain.chunks.set(`${xIndex},${zIndex}`, {
@@ -460,10 +460,14 @@ export class World {
     });
   }
 
-  scatterTerrainEntities(centerX, centerZ, width, depth) {
+  scatterTerrainEntities(xIndex, zIndex, centerX, centerZ, width, depth) {
     const scatter = this.terrain.scatter;
     const created = [];
     const placed = [];
+
+    const treeRng = this.makeChunkRng(xIndex, zIndex, 1);
+    const rampRng = this.makeChunkRng(xIndex, zIndex, 2);
+    const sphereRng = this.makeChunkRng(xIndex, zIndex, 3);
 
     this.tryScatter(scatter.trees, 20, (pos) => {
       if (!this.isSlopeOk(pos.x, pos.z, scatter.maxSlopeDeg.tree)) return null;
@@ -473,7 +477,7 @@ export class World {
         min: scatter.minSpacing.tree,
         place: () => this.addTreeAt(pos.x, this.getHeight(pos.x, pos.z), pos.z),
       };
-    }, placed, created, centerX, centerZ, width, depth);
+    }, placed, created, centerX, centerZ, width, depth, treeRng);
 
     this.tryScatter(scatter.ramps, 30, (pos) => {
       if (!this.isSlopeOk(pos.x, pos.z, scatter.maxSlopeDeg.ramp)) return null;
@@ -483,7 +487,7 @@ export class World {
         min: scatter.minSpacing.ramp,
         place: () => this.addRampAt(pos.x, this.getHeight(pos.x, pos.z) + 0.05, pos.z),
       };
-    }, placed, created, centerX, centerZ, width, depth);
+    }, placed, created, centerX, centerZ, width, depth, rampRng);
 
     this.tryScatter(scatter.spheres, 20, (pos) => {
       return {
@@ -492,17 +496,17 @@ export class World {
         min: scatter.minSpacing.sphere,
         place: () => this.addSphere(pos.x, this.getHeight(pos.x, pos.z) + 1.2, pos.z),
       };
-    }, placed, created, centerX, centerZ, width, depth);
+    }, placed, created, centerX, centerZ, width, depth, sphereRng);
 
     return created;
   }
 
-  tryScatter(count, maxAttempts, planFn, placed, created, centerX, centerZ, width, depth) {
+  tryScatter(count, maxAttempts, planFn, placed, created, centerX, centerZ, width, depth, rng) {
     let added = 0;
     let attempts = 0;
     while (added < count && attempts < count * maxAttempts) {
       attempts += 1;
-      const pos = this.randomPointInChunk(centerX, centerZ, width, depth);
+      const pos = this.randomPointInChunk(centerX, centerZ, width, depth, rng);
       const plan = planFn(pos);
       if (!plan) continue;
       if (!this.isFarEnough(plan, placed)) continue;
@@ -530,10 +534,26 @@ export class World {
     return slopeDeg <= maxSlopeDeg;
   }
 
-  randomPointInChunk(centerX, centerZ, width, depth) {
-    const x = centerX + (Math.random() - 0.5) * width;
-    const z = centerZ + (Math.random() - 0.5) * depth;
+  randomPointInChunk(centerX, centerZ, width, depth, rng = Math.random) {
+    const x = centerX + (rng() - 0.5) * width;
+    const z = centerZ + (rng() - 0.5) * depth;
     return { x, z };
+  }
+
+  makeChunkRng(xIndex, zIndex, salt = 0) {
+    let seed = (this.terrain.seed ?? 0) | 0;
+    seed = (seed + Math.imul(xIndex, 73856093) + Math.imul(zIndex, 19349663) + Math.imul(salt, 83492791)) | 0;
+    return this.mulberry32(seed >>> 0);
+  }
+
+  mulberry32(seed) {
+    let t = seed >>> 0;
+    return () => {
+      t = (t + 0x6D2B79F5) | 0;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
   }
 
   getNormal(x, z) {
