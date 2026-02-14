@@ -42,6 +42,8 @@ export class SkierController2 {
     this.prevYaw = null;
     this.trailStampFrame = 0;
     this.snowParticleTimer = 0;
+    this.wasGrounded = false;
+    this.prevVelocity = new THREE.Vector3();
     this.onKeyDown = (e) => this.keys.add(e.code);
     this.onKeyUp = (e) => this.keys.delete(e.code);
   }
@@ -272,8 +274,15 @@ export class SkierController2 {
           }
 
           if (this.world.snowParticles) {
+            const moveDir = vPlane.lengthSq() > 1e-6 ? vPlane.clone().normalize() : null;
+            const alignDot = moveDir ? Math.abs(moveDir.dot(forwardOnPlane)) : 1;
+            const sideAmount = 1 - alignDot;
+            const interval = THREE.MathUtils.lerp(0.12, 0.03, sideAmount);
+            const count = Math.round(THREE.MathUtils.lerp(3, 10, sideAmount));
+            const spread = THREE.MathUtils.lerp(0.5, 0.9, sideAmount);
+
             this.snowParticleTimer += dt;
-            if (this.snowParticleTimer >= this.snowParticleInterval) {
+            if (this.snowParticleTimer >= interval) {
               this.snowParticleTimer = 0;
               const rightOnPlane = new THREE.Vector3().crossVectors(alignNormal, forwardOnPlane).normalize();
               const base = new THREE.Vector3(body.position.x, body.position.y, body.position.z)
@@ -285,11 +294,31 @@ export class SkierController2 {
               const sprayDir = forwardOnPlane.lengthSq() > 1e-6
                 ? forwardOnPlane.clone().multiplyScalar(-0.7).add(alignNormal.clone().multiplyScalar(0.7)).normalize()
                 : alignNormal.clone();
-              const speed = Math.min(4.5, Math.max(2.2, surfaceSpeed + 0.4));
-              this.world.snowParticles.emit(leftPos, sprayDir, speed, 0.7, 6);
-              this.world.snowParticles.emit(rightPos, sprayDir, speed, 0.7, 6);
+              const speed = Math.min(4.5, Math.max(2.0, surfaceSpeed + 0.2));
+              this.world.snowParticles.emit(leftPos, sprayDir, speed, spread, count);
+              this.world.snowParticles.emit(rightPos, sprayDir, speed, spread, count);
             }
           }
+        }
+      }
+
+      // Landing burst
+      if (this.world.snowParticles && !this.wasGrounded) {
+        const prevVN = this.prevVelocity.dot(alignNormal);
+        const impact = Math.max(0, -prevVN);
+        if (impact > 1.5) {
+          const rightOnPlane = new THREE.Vector3().crossVectors(alignNormal, forwardOnPlane).normalize();
+          const base = new THREE.Vector3(body.position.x, body.position.y, body.position.z)
+            .sub(alignNormal.clone().multiplyScalar(footOffset * 0.7));
+          const side = 0.35;
+          const forwardOffset = 0.1;
+          const leftPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(-side));
+          const rightPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(side));
+          const burstDir = alignNormal.clone().multiplyScalar(0.8).add(new THREE.Vector3(0, 1, 0).multiplyScalar(0.4)).normalize();
+          const burstSpeed = Math.min(6, 2 + impact * 0.6);
+          const burstCount = Math.round(Math.min(20, 6 + impact * 3));
+          this.world.snowParticles.emit(leftPos, burstDir, burstSpeed, 1.2, burstCount);
+          this.world.snowParticles.emit(rightPos, burstDir, burstSpeed, 1.2, burstCount);
         }
       }
 
@@ -362,6 +391,8 @@ export class SkierController2 {
     this.wantsJump = false;
     this.wantsBoost = false;
     this.prevYaw = yaw;
+    this.wasGrounded = grounded;
+    this.prevVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
     // j) Visual sync (no direct rotation changes)
     mesh.position.copy(body.position);
