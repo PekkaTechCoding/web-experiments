@@ -8,6 +8,7 @@ import { TrailSystem } from './trail-system.js';
 import { DeformationPatch } from './deformation-patch.js';
 import { DeformationTexture } from './deformation-texture.js';
 import { AssetLoader } from './assets.js';
+import { SnowParticles } from './snow-particles.js';
 
 export class World {
   constructor(engine, {
@@ -15,6 +16,7 @@ export class World {
     enableDeformationPatch = false,
     enableDeformationTexture = false,
     enableTerrainMeshDeform = true,
+    enableSnowParticles = true,
   } = {}) {
     this.engine = engine;
     this.entities = [];
@@ -29,6 +31,7 @@ export class World {
     this.deformationPatch = enableDeformationPatch ? new DeformationPatch({ scene: this.engine.scene }) : null;
     this.deformationTexture = enableDeformationTexture ? new DeformationTexture() : null;
     this.enableTerrainMeshDeform = enableTerrainMeshDeform;
+    this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
 
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
@@ -140,7 +143,7 @@ export class World {
 
     this.addPlayer();
     this.engine.addPostUpdate((dt) => this.updateCameraFollow(dt));
-    this.engine.addPostUpdate(() => {
+    this.engine.addPostUpdate((dt) => {
       if (this.player && this.trails) {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         this.trails.updateOrigin(body.position.x, body.position.z);
@@ -155,6 +158,9 @@ export class World {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         this.deformationTexture.updateOrigin(body.position.x, body.position.z);
         this.deformationTexture.updateUniforms();
+      }
+      if (this.snowParticles) {
+        this.snowParticles.update(dt);
       }
     });
   }

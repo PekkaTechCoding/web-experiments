@@ -18,6 +18,7 @@ export class SkierController2 {
     jumpSpeed = 8.0,
     groundProbe = 0.20,
     smoothNormals = false,
+    snowParticleInterval = 0.06,
   } = {}) {
     this.world = world;
     this.steerYawRate = steerYawRate;
@@ -34,11 +35,13 @@ export class SkierController2 {
     this.jumpSpeed = jumpSpeed;
     this.groundProbe = groundProbe;
     this.smoothNormals = smoothNormals;
+    this.snowParticleInterval = snowParticleInterval;
 
     this.keys = new Set();
     this.boostRequested = false;
     this.prevYaw = null;
     this.trailStampFrame = 0;
+    this.snowParticleTimer = 0;
     this.onKeyDown = (e) => this.keys.add(e.code);
     this.onKeyUp = (e) => this.keys.delete(e.code);
   }
@@ -266,6 +269,20 @@ export class SkierController2 {
             this.world.deformationTexture?.stamp(rightPos.x, rightPos.z);
             this.world.stampTerrain?.(leftPos.x, leftPos.z, 1);
             this.world.stampTerrain?.(rightPos.x, rightPos.z, 1);
+          }
+
+          if (this.world.snowParticles) {
+            this.snowParticleTimer += dt;
+            if (this.snowParticleTimer >= this.snowParticleInterval) {
+              this.snowParticleTimer = 0;
+              const footPos = new THREE.Vector3(body.position.x, body.position.y, body.position.z)
+                .sub(alignNormal.clone().multiplyScalar(footOffset));
+              const sprayDir = forwardOnPlane.lengthSq() > 1e-6
+                ? forwardOnPlane.clone().multiplyScalar(-1).add(alignNormal.clone().multiplyScalar(0.2)).normalize()
+                : alignNormal.clone();
+              const speed = Math.min(4, Math.max(1.5, surfaceSpeed));
+              this.world.snowParticles.emit(footPos, sprayDir, speed, 0.6, 5);
+            }
           }
         }
       }
