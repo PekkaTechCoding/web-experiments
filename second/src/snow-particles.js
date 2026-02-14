@@ -30,6 +30,7 @@ export class SnowParticles {
     });
 
     this.points = new THREE.Points(this.geometry, this.material);
+    this.points.frustumCulled = false;
     if (scene) scene.add(this.points);
   }
 
