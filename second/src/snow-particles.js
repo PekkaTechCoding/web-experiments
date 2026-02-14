@@ -5,8 +5,8 @@ export class SnowParticles {
     scene,
     maxParticles = 1200,
     size = 0.08,
-    life = 0.5,
-    gravity = -6,
+    life = 0.9,
+    gravity = -5,
   } = {}) {
     this.maxParticles = maxParticles;
     this.life = life;

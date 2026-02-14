@@ -276,12 +276,12 @@ export class SkierController2 {
             if (this.snowParticleTimer >= this.snowParticleInterval) {
               this.snowParticleTimer = 0;
               const footPos = new THREE.Vector3(body.position.x, body.position.y, body.position.z)
-                .sub(alignNormal.clone().multiplyScalar(footOffset));
+                .sub(alignNormal.clone().multiplyScalar(footOffset * 0.7));
               const sprayDir = forwardOnPlane.lengthSq() > 1e-6
-                ? forwardOnPlane.clone().multiplyScalar(-1).add(alignNormal.clone().multiplyScalar(0.2)).normalize()
+                ? forwardOnPlane.clone().multiplyScalar(-0.8).add(alignNormal.clone().multiplyScalar(0.6)).normalize()
                 : alignNormal.clone();
-              const speed = Math.min(4, Math.max(1.5, surfaceSpeed));
-              this.world.snowParticles.emit(footPos, sprayDir, speed, 0.6, 5);
+              const speed = Math.min(4.5, Math.max(2.0, surfaceSpeed + 0.5));
+              this.world.snowParticles.emit(footPos, sprayDir, speed, 0.7, 6);
             }
           }
         }
