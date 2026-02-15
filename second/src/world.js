@@ -168,9 +168,10 @@ export class World {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         const targetX = body.position.x;
         const targetZ = body.position.z;
-        const lightOffset = new THREE.Vector3(8, 16, 6);
-        this.sunLight.position.set(targetX + lightOffset.x, lightOffset.y, targetZ + lightOffset.z);
-        this.sunLight.target.position.set(targetX, 0, targetZ);
+        const groundY = this.getHeight(targetX, targetZ);
+        const lightOffset = new THREE.Vector3(8, 24, 6);
+        this.sunLight.position.set(targetX + lightOffset.x, groundY + lightOffset.y, targetZ + lightOffset.z);
+        this.sunLight.target.position.set(targetX, groundY, targetZ);
         this.sunLight.target.updateMatrixWorld();
         this.sunLight.shadow.camera.updateProjectionMatrix();
       }
