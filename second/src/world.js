@@ -4,14 +4,12 @@ import { Entity, MeshComponent, PhysicsComponent } from './entity.js';
 import { SphereController } from './scripts/SphereController.js';
 import { SkierController2 } from './scripts/SkierController2.js';
 import { TrailSystem } from './trail-system.js';
-import { DeformationTexture } from './deformation-texture.js';
 import { AssetLoader } from './assets.js';
 import { SnowParticles } from './snow-particles.js';
 
 export class World {
   constructor(engine, {
     enableTrails = true,
-    enableDeformationTexture = false,
     enableTerrainMeshDeform = true,
     enableSnowParticles = true,
   } = {}) {
@@ -25,7 +23,6 @@ export class World {
 
     this.assets = new AssetLoader();
     this.trails = enableTrails ? new TrailSystem() : null;
-    this.deformationTexture = enableDeformationTexture ? new DeformationTexture() : null;
     this.enableTerrainMeshDeform = enableTerrainMeshDeform;
     this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
 
@@ -146,11 +143,6 @@ export class World {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         this.trails.updateOrigin(body.position.x, body.position.z);
         this.trails.updateUniforms();
-      }
-      if (this.player && this.deformationTexture) {
-        const body = this.player.getComponent(PhysicsComponent.type).body;
-        this.deformationTexture.updateOrigin(body.position.x, body.position.z);
-        this.deformationTexture.updateUniforms();
       }
       if (this.snowParticles) {
         this.snowParticles.update(dt);
@@ -298,10 +290,6 @@ export class World {
       this.trails.updateOrigin(startX, startZ);
       this.trails.updateUniforms();
     }
-    if (this.deformationTexture) {
-      this.deformationTexture.updateOrigin(startX, startZ);
-      this.deformationTexture.updateUniforms();
-    }
   }
 
   async addTreeModel(url, position = { x: 0, y: 0, z: 0 }) {
@@ -424,7 +412,6 @@ export class World {
 
     const mat = new THREE.MeshStandardMaterial({ color: 0xf5f9fc, roughness: 0.9, metalness: 0 });
     this.trails?.applyToMaterial(mat);
-    this.deformationTexture?.applyToMaterial(mat);
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.position.set(centerX, this.terrain.renderOffset, centerZ);
     mesh.receiveShadow = true;
