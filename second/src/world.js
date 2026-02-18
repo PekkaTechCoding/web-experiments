@@ -2,10 +2,8 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { Entity, MeshComponent, PhysicsComponent } from './entity.js';
 import { SphereController } from './scripts/SphereController.js';
-// import { SkierController } from './scripts/SkierController.js';
 import { SkierController2 } from './scripts/SkierController2.js';
 import { TrailSystem } from './trail-system.js';
-import { DeformationPatch } from './deformation-patch.js';
 import { DeformationTexture } from './deformation-texture.js';
 import { AssetLoader } from './assets.js';
 import { SnowParticles } from './snow-particles.js';
@@ -13,8 +11,7 @@ import { SnowParticles } from './snow-particles.js';
 export class World {
   constructor(engine, {
     enableTrails = false,
-    enableDeformationPatch = false,
-    enableDeformationTexture = false,
+    enableDeformationTexture = true,
     enableTerrainMeshDeform = true,
     enableSnowParticles = true,
   } = {}) {
@@ -28,7 +25,6 @@ export class World {
 
     this.assets = new AssetLoader();
     this.trails = enableTrails ? new TrailSystem() : null;
-    this.deformationPatch = enableDeformationPatch ? new DeformationPatch({ scene: this.engine.scene }) : null;
     this.deformationTexture = enableDeformationTexture ? new DeformationTexture() : null;
     this.enableTerrainMeshDeform = enableTerrainMeshDeform;
     this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
@@ -150,11 +146,6 @@ export class World {
         const body = this.player.getComponent(PhysicsComponent.type).body;
         this.trails.updateOrigin(body.position.x, body.position.z);
         this.trails.updateUniforms();
-      }
-      if (this.player && this.deformationPatch) {
-        const body = this.player.getComponent(PhysicsComponent.type).body;
-        const groundY = this.getHeight(body.position.x, body.position.z);
-        this.deformationPatch.updateCenter(body.position.x, body.position.z, groundY);
       }
       if (this.player && this.deformationTexture) {
         const body = this.player.getComponent(PhysicsComponent.type).body;
@@ -306,9 +297,6 @@ export class World {
     if (this.trails) {
       this.trails.updateOrigin(startX, startZ);
       this.trails.updateUniforms();
-    }
-    if (this.deformationPatch) {
-      this.deformationPatch.updateCenter(startX, startZ, groundY);
     }
     if (this.deformationTexture) {
       this.deformationTexture.updateOrigin(startX, startZ);

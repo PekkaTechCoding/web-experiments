@@ -44,6 +44,8 @@ export class SkierController2 {
     this.snowParticleTimer = 0;
     this.wasGrounded = false;
     this.prevVelocity = new THREE.Vector3();
+    this.lastStampLeft = null;
+    this.lastStampRight = null;
     this.onKeyDown = (e) => this.keys.add(e.code);
     this.onKeyUp = (e) => this.keys.delete(e.code);
   }
@@ -265,12 +267,13 @@ export class SkierController2 {
             const rightPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(side));
             this.world.trails?.stamp(leftPos.x, leftPos.z);
             this.world.trails?.stamp(rightPos.x, rightPos.z);
-            this.world.deformationPatch?.stamp(leftPos.x, leftPos.z, 1);
-            this.world.deformationPatch?.stamp(rightPos.x, rightPos.z, 1);
             this.world.deformationTexture?.stamp(leftPos.x, leftPos.z);
             this.world.deformationTexture?.stamp(rightPos.x, rightPos.z);
             this.world.stampTerrain?.(leftPos.x, leftPos.z, 1);
             this.world.stampTerrain?.(rightPos.x, rightPos.z, 1);
+
+            this.lastStampLeft = leftPos;
+            this.lastStampRight = rightPos;
           }
 
           if (this.world.snowParticles) {
@@ -391,6 +394,10 @@ export class SkierController2 {
     this.wantsJump = false;
     this.wantsBoost = false;
     this.prevYaw = yaw;
+    if (!grounded) {
+      this.lastStampLeft = null;
+      this.lastStampRight = null;
+    }
     this.wasGrounded = grounded;
     this.prevVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
