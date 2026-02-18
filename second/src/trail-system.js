@@ -4,8 +4,8 @@ export class TrailSystem {
   constructor({
     size = 120,
     resolution = 512,
-    stampRadius = 0.35,
-    stampStrength = 0.6,
+    stampRadius = 0.25,
+    stampStrength = 0.9,
     canvas = null,
   } = {}) {
     this.size = size;
@@ -24,8 +24,8 @@ export class TrailSystem {
     this.ctx.fillRect(0, 0, resolution, resolution);
 
     this.texture = new THREE.CanvasTexture(this.canvas);
-    this.texture.wrapS = THREE.ClampToEdgeWrapping;
-    this.texture.wrapT = THREE.ClampToEdgeWrapping;
+    this.texture.wrapS = THREE.RepeatWrapping;
+    this.texture.wrapT = THREE.RepeatWrapping;
     this.texture.minFilter = THREE.LinearFilter;
     this.texture.magFilter = THREE.LinearFilter;
     this.texture.needsUpdate = true;
@@ -72,7 +72,20 @@ export class TrailSystem {
     tctx.drawImage(this.canvas, 0, 0);
 
     this.ctx.clearRect(0, 0, this.resolution, this.resolution);
-    this.ctx.drawImage(temp, offsetX, offsetY);
+    const xOffsets = [offsetX];
+    if (offsetX > 0) xOffsets.push(offsetX - this.resolution);
+    if (offsetX < 0) xOffsets.push(offsetX + this.resolution);
+    const yOffsets = [offsetY];
+    if (offsetY > 0) yOffsets.push(offsetY - this.resolution);
+    if (offsetY < 0) yOffsets.push(offsetY + this.resolution);
+
+    for (const x of xOffsets) {
+      for (const y of yOffsets) {
+        this.ctx.drawImage(temp, x, y);
+      }
+    }
+
+    this._clearNewlyExposed(offsetX, offsetY);
     this.texture.needsUpdate = true;
     this.lastOrigin.copy(next);
   }
@@ -93,6 +106,30 @@ export class TrailSystem {
     this.texture.needsUpdate = true;
   }
 
+  _clearNewlyExposed(offsetX, offsetY) {
+    const width = this.resolution;
+    const height = this.resolution;
+    if (offsetX === 0 && offsetY === 0) return;
+
+    this.ctx.fillStyle = 'black';
+
+    if (offsetX > 0) {
+      const w = Math.min(width, Math.ceil(offsetX));
+      this.ctx.fillRect(0, 0, w, height);
+    } else if (offsetX < 0) {
+      const w = Math.min(width, Math.ceil(-offsetX));
+      this.ctx.fillRect(width - w, 0, w, height);
+    }
+
+    if (offsetY > 0) {
+      const h = Math.min(height, Math.ceil(offsetY));
+      this.ctx.fillRect(0, 0, width, h);
+    } else if (offsetY < 0) {
+      const h = Math.min(height, Math.ceil(-offsetY));
+      this.ctx.fillRect(0, height - h, width, h);
+    }
+  }
+
   stamp(worldX, worldZ) {
     const { u, v } = this.worldToUV(worldX, worldZ);
     if (u < 0 || u > 1 || v < 0 || v > 1) return;
@@ -103,7 +140,7 @@ export class TrailSystem {
 
     const grad = this.ctx.createRadialGradient(px, py, 0, px, py, radius);
     grad.addColorStop(0, `rgba(255,255,255,${this.stampStrength})`);
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
+    grad.addColorStop(1, 'rgba(255,255,255,0.3)');
     this.ctx.fillStyle = grad;
     this.ctx.beginPath();
     this.ctx.arc(px, py, radius, 0, Math.PI * 2);
