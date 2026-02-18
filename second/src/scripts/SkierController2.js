@@ -269,8 +269,13 @@ export class SkierController2 {
             this.world.trails?.stamp(rightPos.x, rightPos.z);
             this.world.deformationTexture?.stamp(leftPos.x, leftPos.z);
             this.world.deformationTexture?.stamp(rightPos.x, rightPos.z);
-            this.world.stampTerrain?.(leftPos.x, leftPos.z, 1);
-            this.world.stampTerrain?.(rightPos.x, rightPos.z, 1);
+            if (this.wasGrounded && this.lastStampLeft && this.lastStampRight && this.world.stampTerrainSegment) {
+              this.world.stampTerrainSegment(this.lastStampLeft.x, this.lastStampLeft.z, leftPos.x, leftPos.z, 1);
+              this.world.stampTerrainSegment(this.lastStampRight.x, this.lastStampRight.z, rightPos.x, rightPos.z, 1);
+            } else {
+              this.world.stampTerrain?.(leftPos.x, leftPos.z, 1);
+              this.world.stampTerrain?.(rightPos.x, rightPos.z, 1);
+            }
 
             this.lastStampLeft = leftPos;
             this.lastStampRight = rightPos;

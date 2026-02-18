@@ -10,8 +10,8 @@ import { SnowParticles } from './snow-particles.js';
 
 export class World {
   constructor(engine, {
-    enableTrails = false,
-    enableDeformationTexture = true,
+    enableTrails = true,
+    enableDeformationTexture = false,
     enableTerrainMeshDeform = true,
     enableSnowParticles = true,
   } = {}) {
@@ -649,6 +649,28 @@ export class World {
     if (nearRight && nearFront) stampChunk(xi + 1, zi + 1);
   }
 
+  stampTerrainSegment(x1, z1, x2, z2, strength = 1) {
+    if (!this.enableTerrainMeshDeform) return;
+    const { chunkSize, deform } = this.terrain;
+    const radius = deform.radius;
+
+    const minX = Math.min(x1, x2) - radius;
+    const maxX = Math.max(x1, x2) + radius;
+    const minZ = Math.min(z1, z2) - radius;
+    const maxZ = Math.max(z1, z2) + radius;
+
+    const minXi = Math.floor(minX / chunkSize);
+    const maxXi = Math.floor(maxX / chunkSize);
+    const minZi = Math.floor(minZ / chunkSize);
+    const maxZi = Math.floor(maxZ / chunkSize);
+
+    for (let zi = minZi; zi <= maxZi; zi++) {
+      for (let xi = minXi; xi <= maxXi; xi++) {
+        this.stampTerrainSegmentInChunk(x1, z1, x2, z2, xi, zi, strength);
+      }
+    }
+  }
+
   stampTerrainInChunk(worldX, worldZ, xIndex, zIndex, strength = 1) {
     const key = `${xIndex},${zIndex}`;
     const chunk = this.terrain.chunks.get(key);
@@ -671,6 +693,50 @@ export class World {
       const distSq = dx * dx + dz * dz;
       if (distSq > radiusSq) continue;
       const dist = Math.sqrt(distSq);
+      const falloff = 1 - dist / radius;
+      const depth = maxDepth * falloff * strength;
+      const baseY = base[i * 3 + 1];
+      const target = baseY - depth;
+      const current = positions.getY(i);
+      if (target < current) positions.setY(i, target);
+    }
+
+    positions.needsUpdate = true;
+    geometry.computeVertexNormals();
+  }
+
+  stampTerrainSegmentInChunk(x1, z1, x2, z2, xIndex, zIndex, strength = 1) {
+    const key = `${xIndex},${zIndex}`;
+    const chunk = this.terrain.chunks.get(key);
+    if (!chunk?.mesh || !chunk.basePositions) return;
+
+    const geometry = chunk.mesh.geometry;
+    const positions = geometry.attributes.position;
+    const base = chunk.basePositions;
+
+    const localX1 = x1 - chunk.centerX;
+    const localZ1 = z1 - chunk.centerZ;
+    const localX2 = x2 - chunk.centerX;
+    const localZ2 = z2 - chunk.centerZ;
+
+    const { radius, maxDepth } = this.terrain.deform;
+    const dx = localX2 - localX1;
+    const dz = localZ2 - localZ1;
+    const denom = dx * dx + dz * dz;
+
+    if (denom < 1e-8) {
+      this.stampTerrainInChunk(x1, z1, xIndex, zIndex, strength);
+      return;
+    }
+
+    for (let i = 0; i < positions.count; i++) {
+      const vx = positions.getX(i);
+      const vz = positions.getZ(i);
+      const t = THREE.MathUtils.clamp(((vx - localX1) * dx + (vz - localZ1) * dz) / denom, 0, 1);
+      const px = localX1 + dx * t;
+      const pz = localZ1 + dz * t;
+      const dist = Math.hypot(vx - px, vz - pz);
+      if (dist > radius) continue;
       const falloff = 1 - dist / radius;
       const depth = maxDepth * falloff * strength;
       const baseY = base[i * 3 + 1];
