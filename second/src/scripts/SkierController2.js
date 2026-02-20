@@ -285,24 +285,26 @@ export class SkierController2 {
             const moveDir = vPlane.lengthSq() > 1e-6 ? vPlane.clone().normalize() : null;
             const alignDot = moveDir ? Math.abs(moveDir.dot(forwardOnPlane)) : 1;
             const sideAmount = 1 - alignDot;
-            const interval = THREE.MathUtils.lerp(0.12, 0.03, sideAmount);
+            // const interval = THREE.MathUtils.lerp(0.12, 0.03, sideAmount);
+            const pacing = Math.max(0, Math.min(1, surfaceSpeed / 10));
+            const interval = (1 - pacing) * THREE.MathUtils.lerp(0.02, 0.01, sideAmount);
             const count = Math.round(THREE.MathUtils.lerp(3, 10, sideAmount));
             const spread = THREE.MathUtils.lerp(0.5, 0.9, sideAmount);
 
             this.snowParticleTimer += dt;
             if (this.snowParticleTimer >= interval) {
-              this.snowParticleTimer = 0;
+              this.snowParticleTimer -= interval;
               const rightOnPlane = new THREE.Vector3().crossVectors(alignNormal, forwardOnPlane).normalize();
               const base = new THREE.Vector3(body.position.x, body.position.y, body.position.z)
-                .sub(alignNormal.clone().multiplyScalar(footOffset * 0.7));
-              const side = 0.28;
+                .sub(alignNormal.clone().multiplyScalar(footOffset * 0.95));
+              const side = 0.48;
               const forwardOffset = 0.15;
               const leftPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(-side));
               const rightPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(side));
               const sprayDir = forwardOnPlane.lengthSq() > 1e-6
-                ? forwardOnPlane.clone().multiplyScalar(-0.7).add(alignNormal.clone().multiplyScalar(0.7)).normalize()
+                ? forwardOnPlane.clone().multiplyScalar(-0.2).add(alignNormal.clone().multiplyScalar(0.7)).normalize()
                 : alignNormal.clone();
-              const speed = Math.min(4.5, Math.max(2.0, surfaceSpeed + 0.2));
+              const speed = pacing * Math.min(4.0, Math.max(0.5, surfaceSpeed + 0.2));
               this.world.snowParticles.emit(leftPos, sprayDir, speed, spread, count);
               this.world.snowParticles.emit(rightPos, sprayDir, speed, spread, count);
             }
@@ -323,7 +325,7 @@ export class SkierController2 {
           const leftPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(-side));
           const rightPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(side));
           const burstDir = alignNormal.clone().multiplyScalar(0.8).add(new THREE.Vector3(0, 1, 0).multiplyScalar(0.4)).normalize();
-          const burstSpeed = Math.min(6, 2 + impact * 0.6);
+          const burstSpeed = Math.min(4, 1 + impact * 0.6);
           const burstCount = Math.round(Math.min(20, 6 + impact * 3));
           this.world.snowParticles.emit(leftPos, burstDir, burstSpeed, 1.2, burstCount);
           this.world.snowParticles.emit(rightPos, burstDir, burstSpeed, 1.2, burstCount);
