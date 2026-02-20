@@ -161,7 +161,6 @@ export class AssetLoader {
     snowboard.position.x += skierCenter.x - boardCenter.x;
     snowboard.position.z += skierCenter.z - boardCenter.z;
     snowboard.position.y += skierBox.min.y - boardMinY - 0.03;
-a
     snowboard.updateWorldMatrix(true, true);
     model.add(snowboard);
   }
