@@ -5,7 +5,7 @@ export class SnowParticles {
     scene,
     maxParticles = 1200,
     size = 0.3,//0.16,
-    life = 3.0,
+    life = 2.0,
     gravity = -7,
     growFactor = 3.0,//3.0,
   } = {}) {
