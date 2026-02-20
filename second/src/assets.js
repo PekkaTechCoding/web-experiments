@@ -47,6 +47,9 @@ export class AssetLoader {
   }
 
   createSkierMesh() {
+    // Attribution (planned replacement): "Skier low poly character" by Sweed (SweeD_tort)
+    // https://sketchfab.com/3d-models/skier-low-poly-character-13ae2a85b3af43ab8b1e984c8f8c87e2
+    // License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
     const bodyGeom = new THREE.CylinderGeometry(0.2, 0.25, 1.2, 8);
     const headGeom = new THREE.SphereGeometry(0.25, 12, 12);
     const skiGeom = new THREE.BoxGeometry(1.6, 0.08, 0.2);
