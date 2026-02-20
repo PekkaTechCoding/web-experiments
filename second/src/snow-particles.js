@@ -4,10 +4,10 @@ export class SnowParticles {
   constructor({
     scene,
     maxParticles = 1200,
-    size = 0.12,
+    size = 0.16,
     life = 3.0,
     gravity = -7,
-    growFactor = 2.4,
+    growFactor = 3.0,
   } = {}) {
     this.maxParticles = maxParticles;
     this.life = life;
