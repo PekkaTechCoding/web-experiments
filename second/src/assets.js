@@ -1,18 +1,33 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js?module';
+import { FBXLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/FBXLoader.js?module';
+import * as SkeletonUtils from 'https://unpkg.com/three@0.161.0/examples/jsm/utils/SkeletonUtils.js?module';
 
 export class AssetLoader {
   constructor() {
     this.gltf = new GLTFLoader();
+    this.fbx = new FBXLoader();
     this.cache = new Map();
   }
 
+  cloneModel(model) {
+    return SkeletonUtils.clone(model);
+  }
+
   async loadGLTF(url) {
-    if (this.cache.has(url)) return this.cache.get(url).clone();
+    if (this.cache.has(url)) return this.cloneModel(this.cache.get(url));
     const gltf = await this.gltf.loadAsync(url);
     const scene = gltf.scene || gltf.scenes?.[0];
     if (scene) this.cache.set(url, scene);
-    return scene?.clone() || null;
+    return scene ? this.cloneModel(scene) : null;
+  }
+
+  async loadSkierModel() {
+    return this.loadGLTF('/models/skier_low_poly_character.glb');
+  }
+
+  async loadSnowboardModel() {
+    return this.loadGLTF('/models/snowboard.glb');
   }
 
   createTreeMesh() {
@@ -46,10 +61,7 @@ export class AssetLoader {
     return mesh;
   }
 
-  createSkierMesh() {
-    // Attribution (planned replacement): "Skier low poly character" by Sweed (SweeD_tort)
-    // https://sketchfab.com/3d-models/skier-low-poly-character-13ae2a85b3af43ab8b1e984c8f8c87e2
-    // License: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  createSkierPlaceholderMesh() {
     const bodyGeom = new THREE.CylinderGeometry(0.2, 0.25, 1.2, 8);
     const headGeom = new THREE.SphereGeometry(0.25, 12, 12);
     const skiGeom = new THREE.BoxGeometry(1.6, 0.08, 0.2);
@@ -76,6 +88,104 @@ export class AssetLoader {
 
     const group = new THREE.Group();
     group.add(body, head, ski1, ski2);
+
+    return group;
+  }
+
+  normalizeSkierModel(model, {
+    targetHeight = 1.7,
+    desiredMinY = -0.75,
+    baseScale = 1,
+  } = {}) {
+    model.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+      }
+    });
+
+    if (Number.isFinite(baseScale) && baseScale !== 1) {
+      model.scale.setScalar(baseScale);
+    }
+
+    model.updateWorldMatrix(true, true);
+    const initialBox = new THREE.Box3().setFromObject(model);
+    if (!Number.isFinite(initialBox.min.y) || !Number.isFinite(initialBox.max.y)) {
+      console.warn('Skier model has no visible geometry; keeping placeholder.');
+      return false;
+    }
+    const size = initialBox.getSize(new THREE.Vector3());
+    const scale = size.y > 0 ? targetHeight / size.y : 1;
+    model.scale.multiplyScalar(scale);
+
+    model.updateWorldMatrix(true, true);
+    const scaledBox = new THREE.Box3().setFromObject(model);
+    const center = scaledBox.getCenter(new THREE.Vector3());
+    model.position.x -= center.x;
+    model.position.z -= center.z;
+
+    model.updateWorldMatrix(true, true);
+    const centeredBox = new THREE.Box3().setFromObject(model);
+    model.position.y += desiredMinY - centeredBox.min.y;
+    return true;
+  }
+
+  getSkierBaseScale() {
+    return 1;
+  }
+
+  async attachSnowboard(model) {
+    const snowboard = await this.loadSnowboardModel();
+    if (!snowboard) return;
+
+    snowboard.traverse((child) => {
+      if (child.isMesh) child.castShadow = true;
+    });
+
+    model.updateWorldMatrix(true, true);
+    const skierBox = new THREE.Box3().setFromObject(model);
+    const skierSize = skierBox.getSize(new THREE.Vector3());
+    const skierCenter = skierBox.getCenter(new THREE.Vector3());
+
+    snowboard.updateWorldMatrix(true, true);
+    const boardBox = new THREE.Box3().setFromObject(snowboard);
+    const boardSize = boardBox.getSize(new THREE.Vector3());
+    const targetLength = Math.max(1.2, skierSize.x * 1.1);
+    const boardScale = boardSize.x > 0 ? targetLength / boardSize.x : 1;
+    snowboard.scale.setScalar(boardScale);
+
+    snowboard.updateWorldMatrix(true, true);
+    const scaledBoardBox = new THREE.Box3().setFromObject(snowboard);
+    const boardCenter = scaledBoardBox.getCenter(new THREE.Vector3());
+    const boardMinY = scaledBoardBox.min.y;
+
+    snowboard.position.x += skierCenter.x - boardCenter.x;
+    snowboard.position.z += skierCenter.z - boardCenter.z;
+    snowboard.position.y += skierBox.min.y - boardMinY - 0.03;
+a
+    snowboard.updateWorldMatrix(true, true);
+    model.add(snowboard);
+  }
+
+  createSkierMesh() {
+    const group = new THREE.Group();
+    const visualRoot = new THREE.Group();
+    const placeholder = this.createSkierPlaceholderMesh();
+    visualRoot.add(placeholder);
+    group.add(visualRoot);
+
+    this.loadSkierModel().then((model) => {
+      if (!model) return;
+
+      const baseScale = this.getSkierBaseScale();
+      if (!this.normalizeSkierModel(model, { baseScale })) return;
+      model.rotation.y = Math.PI;
+      this.attachSnowboard(model);
+      model.updateWorldMatrix(true, true);
+      visualRoot.add(model);
+      placeholder.visible = false;
+    }).catch((err) => {
+      console.warn('Failed to load skier model:', err);
+    });
 
     return group;
   }

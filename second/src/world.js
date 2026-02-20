@@ -25,7 +25,7 @@ export class World {
     this.trails = enableTrails ? new TrailSystem() : null;
     this.enableTerrainMeshDeform = enableTerrainMeshDeform;
     this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
-
+    
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
     this.rampMat = new CANNON.Material('ramp');
