@@ -124,6 +124,7 @@ const joystickBase = document.getElementById('joystickBase');
 const joystickThumb = document.getElementById('joystickThumb');
 const jumpButton = document.getElementById('jumpButton');
 const boostButton = document.getElementById('boostButton');
+const joystickHint = document.getElementById('joystickHint');
 
 let joystickActive = false;
 let joystickId = null;
@@ -144,7 +145,23 @@ const setStickPosition = (x, y, dx = 0, dy = 0) => {
   joystickThumb.style.top = `${y + dy}px`;
 };
 
+const setHintPosition = (x, y) => {
+  if (!joystickHint) return;
+  joystickHint.style.left = `${x}px`;
+  joystickHint.style.top = `${y}px`;
+};
+
+const resetHintPosition = () => {
+  if (!joystickHint || typeof window === 'undefined') return;
+  setHintPosition(80, window.innerHeight - 80);
+};
+
 if (joystickZone) {
+  resetHintPosition();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', resetHintPosition);
+  }
+
   joystickZone.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     joystickActive = true;
@@ -152,6 +169,7 @@ if (joystickZone) {
     origin = { x: event.clientX, y: event.clientY };
     setStickVisible(true);
     setStickPosition(origin.x, origin.y, 0, 0);
+    setHintPosition(origin.x, origin.y);
     joystickZone.setPointerCapture(event.pointerId);
   });
 
@@ -166,6 +184,7 @@ if (joystickZone) {
 
     inputState.steer = Math.max(-1, Math.min(1, -clampedX / radius));
     setStickPosition(origin.x, origin.y, clampedX, clampedY);
+    setHintPosition(origin.x + clampedX, origin.y + clampedY);
   });
 
   const endStick = (event) => {
@@ -174,6 +193,7 @@ if (joystickZone) {
     joystickId = null;
     inputState.steer = 0;
     setStickVisible(false);
+    resetHintPosition();
   };
 
   joystickZone.addEventListener('pointerup', endStick);

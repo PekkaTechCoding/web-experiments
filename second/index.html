@@ -77,6 +77,20 @@
       background: rgba(44,90,160,0.35);
       border-color: rgba(44,90,160,0.6);
     }
+    #joystickHint {
+      position: fixed;
+      width: 40px; height: 40px;
+      border-radius: 999px;
+      display: grid; place-items: center;
+      background: rgba(255,255,255,0.75);
+      border: 2px solid rgba(44,90,160,0.25);
+      color: rgba(44,90,160,0.8);
+      font-size: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      pointer-events: none;
+      opacity: 0.85;
+      transform: translate(-50%, -50%);
+    }
     #jumpButton {
       position: fixed; right: 20px; bottom: 80px;
       width: 64px; height: 64px;
@@ -134,6 +148,7 @@
       <div id="joystickBase"></div>
       <div id="joystickThumb"></div>
     </div>
+    <div id="joystickHint" aria-hidden="true">👆</div>
     <button id="boostButton" aria-label="Boost">⏩</button>
     <button id="jumpButton" aria-label="Jump">⤴️</button>
   </div>
