@@ -103,37 +103,43 @@ export class World {
     scene.add(dir);
     scene.add(dir.target);
 
-    // Contact material - snowballs have higher friction and lower bounce
+    // Contact material - snowballs have higher friction and very low bounce
     const contact = new CANNON.ContactMaterial(this.terrainMat, this.sphereMat, {
       friction: 0.8,
-      restitution: 0.2,
+      restitution: 0.03,
     });
     this.physicsWorld.addContactMaterial(contact);
 
     // Snowball-to-snowball interactions
     const sphereContact = new CANNON.ContactMaterial(this.sphereMat, this.sphereMat, {
       friction: 0.7,
-      restitution: 0.15,
+      restitution: 0.03,
     });
     this.physicsWorld.addContactMaterial(sphereContact);
 
     const skierTerrain = new CANNON.ContactMaterial(this.skierMat, this.terrainMat, {
       friction: 0.08,
-      restitution: 0.1,
+      restitution: 0.02,
     });
     this.physicsWorld.addContactMaterial(skierTerrain);
 
     const skierRamp = new CANNON.ContactMaterial(this.skierMat, this.rampMat, {
       friction: 0.05,
-      restitution: 0.1,
+      restitution: 0.02,
     });
     this.physicsWorld.addContactMaterial(skierRamp);
 
     const skierTree = new CANNON.ContactMaterial(this.skierMat, this.treeMat, {
       friction: 0.35,
-      restitution: 0.01,
+      restitution: 0.02,
     });
     this.physicsWorld.addContactMaterial(skierTree);
+
+    const skierSphere = new CANNON.ContactMaterial(this.skierMat, this.sphereMat, {
+      friction: 0.25,
+      restitution: 0.02,
+    });
+    this.physicsWorld.addContactMaterial(skierSphere);
 
     this.initTerrain();
     this.engine.addPostUpdate(() => this.updateTerrain());
