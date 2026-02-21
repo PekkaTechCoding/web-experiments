@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js?module';
-import { FBXLoader } from 'https://unpkg.com/three@0.161.0/examples/jsm/loaders/FBXLoader.js?module';
-import * as SkeletonUtils from 'https://unpkg.com/three@0.161.0/examples/jsm/utils/SkeletonUtils.js?module';
+import { GLTFLoader } from 'https://unpkg.com/three@0.182.0/examples/jsm/loaders/GLTFLoader.js?module';
+import { FBXLoader } from 'https://unpkg.com/three@0.182.0/examples/jsm/loaders/FBXLoader.js?module';
+import * as SkeletonUtils from 'https://unpkg.com/three@0.182.0/examples/jsm/utils/SkeletonUtils.js?module';
 
 export class AssetLoader {
   constructor() {
