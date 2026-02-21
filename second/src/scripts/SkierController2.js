@@ -19,6 +19,10 @@ export class SkierController2 {
     groundProbe = 0.20,
     smoothNormals = false,
     snowParticleInterval = 0.06,
+    visualTiltRateGrounded = 8.0,
+    visualTiltRateAir = 3.0,
+    visualImpactThreshold = 1.5,
+    visualImpactBoost = 1.2,
   } = {}) {
     this.world = world;
     this.steerYawRate = steerYawRate;
@@ -36,6 +40,10 @@ export class SkierController2 {
     this.groundProbe = groundProbe;
     this.smoothNormals = smoothNormals;
     this.snowParticleInterval = snowParticleInterval;
+    this.visualTiltRateGrounded = visualTiltRateGrounded;
+    this.visualTiltRateAir = visualTiltRateAir;
+    this.visualImpactThreshold = visualImpactThreshold;
+    this.visualImpactBoost = visualImpactBoost;
 
     this.keys = new Set();
     this.boostRequested = false;
@@ -46,6 +54,7 @@ export class SkierController2 {
     this.prevVelocity = new THREE.Vector3();
     this.lastStampLeft = null;
     this.lastStampRight = null;
+    this.visualQuat = new THREE.Quaternion();
     this.onKeyDown = (e) => this.keys.add(e.code);
     this.onKeyUp = (e) => this.keys.delete(e.code);
   }
@@ -408,8 +417,38 @@ export class SkierController2 {
     this.wasGrounded = grounded;
     this.prevVelocity.set(body.velocity.x, body.velocity.y, body.velocity.z);
 
-    // j) Visual sync (no direct rotation changes)
+    // j) Visual sync with smoothed terrain tilt.
+    let visualTarget = yawQuat.clone();
+    if (forwardOnPlane.lengthSq() > 1e-6) {
+      const back = forwardOnPlane.clone().multiplyScalar(-1);
+      const rightOnPlane = new THREE.Vector3().crossVectors(alignNormal, back);
+      if (rightOnPlane.lengthSq() > 1e-8) {
+        rightOnPlane.normalize();
+        const tiltMatrix = new THREE.Matrix4().makeBasis(
+          rightOnPlane,
+          alignNormal.clone().normalize(),
+          back.clone().normalize(),
+        );
+        visualTarget.setFromRotationMatrix(tiltMatrix);
+      }
+    }
+
+    if (this.visualQuat.lengthSq() < 1e-8) {
+      this.visualQuat.copy(mesh.quaternion);
+    }
+
+    let landingImpact = 0;
+    if (grounded && !this.wasGrounded) {
+      const prevVN = this.prevVelocity.dot(alignNormal);
+      landingImpact = Math.max(0, -prevVN);
+    }
+    const impactBoost = Math.max(0, landingImpact - this.visualImpactThreshold) * this.visualImpactBoost;
+    const baseRate = grounded ? this.visualTiltRateGrounded : this.visualTiltRateAir;
+    const smoothRate = baseRate + impactBoost;
+    const alpha = 1 - Math.exp(-Math.max(0, smoothRate) * Math.max(0, dt));
+    this.visualQuat.slerp(visualTarget, THREE.MathUtils.clamp(alpha, 0, 1));
+
     mesh.position.copy(body.position);
-    mesh.quaternion.copy(body.quaternion);
+    mesh.quaternion.copy(this.visualQuat);
   }
 }
