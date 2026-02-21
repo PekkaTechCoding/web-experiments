@@ -139,10 +139,13 @@ const setStickVisible = (visible) => {
 
 const setStickPosition = (x, y, dx = 0, dy = 0) => {
   if (!joystickBase || !joystickThumb) return;
-  joystickBase.style.left = `${x}px`;
-  joystickBase.style.top = `${y}px`;
-  joystickThumb.style.left = `${x + dx}px`;
-  joystickThumb.style.top = `${y + dy}px`;
+  const rect = joystickZone?.getBoundingClientRect();
+  const localX = rect ? x - rect.left : x;
+  const localY = rect ? y - rect.top : y;
+  joystickBase.style.left = `${localX}px`;
+  joystickBase.style.top = `${localY}px`;
+  joystickThumb.style.left = `${localX + dx}px`;
+  joystickThumb.style.top = `${localY + dy}px`;
 };
 
 const setHintPosition = (x, y) => {
