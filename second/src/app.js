@@ -169,7 +169,7 @@ if (joystickZone) {
     origin = { x: event.clientX, y: event.clientY };
     setStickVisible(true);
     setStickPosition(origin.x, origin.y, 0, 0);
-    setHintPosition(origin.x, origin.y);
+    setHintPosition(event.clientX, event.clientY);
     joystickZone.setPointerCapture(event.pointerId);
   });
 
@@ -184,7 +184,7 @@ if (joystickZone) {
 
     inputState.steer = Math.max(-1, Math.min(1, -clampedX / radius));
     setStickPosition(origin.x, origin.y, clampedX, clampedY);
-    setHintPosition(origin.x + clampedX, origin.y + clampedY);
+    setHintPosition(event.clientX, event.clientY);
   });
 
   const endStick = (event) => {
