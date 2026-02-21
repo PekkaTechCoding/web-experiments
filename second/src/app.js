@@ -128,11 +128,15 @@ let joystickActive = false;
 let joystickId = null;
 let origin = { x: 0, y: 0 };
 const radius = 50;
+const alwaysShowJoystick = typeof window !== 'undefined'
+  && window.matchMedia
+  && window.matchMedia('(pointer: coarse)').matches;
 
 const setStickVisible = (visible) => {
   if (!joystickBase || !joystickThumb) return;
-  joystickBase.style.display = visible ? 'block' : 'none';
-  joystickThumb.style.display = visible ? 'block' : 'none';
+  const show = alwaysShowJoystick ? true : visible;
+  joystickBase.style.display = show ? 'block' : 'none';
+  joystickThumb.style.display = show ? 'block' : 'none';
 };
 
 const setStickPosition = (x, y, dx = 0, dy = 0) => {
@@ -146,7 +150,23 @@ const setStickPosition = (x, y, dx = 0, dy = 0) => {
   joystickThumb.style.top = `${localY + dy}px`;
 };
 
+const setStickIdlePosition = () => {
+  if (typeof window === 'undefined') return;
+  const x = 80;
+  const y = window.innerHeight - 80;
+  origin = { x, y };
+  setStickPosition(origin.x, origin.y, 0, 0);
+};
+
 if (joystickZone) {
+  if (alwaysShowJoystick) {
+    setStickVisible(true);
+    setStickIdlePosition();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', setStickIdlePosition);
+    }
+  }
+
   joystickZone.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     joystickActive = true;
@@ -176,6 +196,9 @@ if (joystickZone) {
     joystickId = null;
     inputState.steer = 0;
     setStickVisible(false);
+    if (alwaysShowJoystick) {
+      setStickIdlePosition();
+    }
   };
 
   joystickZone.addEventListener('pointerup', endStick);
