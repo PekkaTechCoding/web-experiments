@@ -25,6 +25,8 @@ export class World {
     this.trails = enableTrails ? new TrailSystem() : null;
     this.enableTerrainMeshDeform = enableTerrainMeshDeform;
     this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
+    this.terrainVisible = true;
+    this.cameraFollowEnabled = true;
     
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
@@ -415,6 +417,7 @@ export class World {
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.position.set(centerX, this.terrain.renderOffset, centerZ);
     mesh.receiveShadow = true;
+    mesh.visible = this.terrainVisible;
 
     const vertices = Array.from(positions.array);
     const indexArray = geometry.index ? Array.from(geometry.index.array) : null;
@@ -738,6 +741,7 @@ export class World {
 
 
   updateCameraFollow(dt) {
+    if (!this.cameraFollowEnabled) return;
     if (!this.player || !this.engine?.camera) return;
     const body = this.player.getComponent('physics').body;
     const cam = this.engine.camera;
@@ -756,6 +760,17 @@ export class World {
     } else {
       cam.lookAt(body.position.x, body.position.y + 1.2, body.position.z);
     }
+  }
+
+  setTerrainVisible(visible) {
+    this.terrainVisible = !!visible;
+    for (const chunk of this.terrain.chunks.values()) {
+      if (chunk.mesh) chunk.mesh.visible = this.terrainVisible;
+    }
+  }
+
+  setCameraFollowEnabled(enabled) {
+    this.cameraFollowEnabled = !!enabled;
   }
 
   getHeight(x, z) {

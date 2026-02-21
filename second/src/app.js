@@ -9,10 +9,23 @@ world.init();
 engine.start();
 engine.run();
 
-const debugToggle = document.getElementById('debugToggle');
+const debugLinesToggle = document.getElementById('debugLinesToggle');
+const hideTerrainToggle = document.getElementById('hideTerrainToggle');
+const disableFollowCamToggle = document.getElementById('disableFollowCamToggle');
 const slowToggle = document.getElementById('slowToggle');
 const hud = document.getElementById('hud');
 const physicsDebug = new PhysicsDebug(engine.scene, world.physicsWorld, { color: 0xff3333 });
+const urlParams = new URLSearchParams(window.location.search);
+
+const readFlagFromUrl = (keys, fallback = false) => {
+  for (const key of keys) {
+    if (!urlParams.has(key)) continue;
+    const raw = `${urlParams.get(key) ?? ''}`.trim().toLowerCase();
+    if (raw === '' || raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') return true;
+    if (raw === '0' || raw === 'false' || raw === 'no' || raw === 'off') return false;
+  }
+  return fallback;
+};
 
 engine.addPostUpdate(() => {
   physicsDebug.update();
@@ -37,12 +50,24 @@ engine.addPostUpdate(() => {
   }
 });
 
-const setDebug = (enabled) => {
+const setDebugLines = (enabled) => {
   physicsDebug.setEnabled(enabled);
-  debugToggle?.classList.toggle('active', enabled);
+  if (debugLinesToggle) debugLinesToggle.checked = !!enabled;
 };
 
-setDebug(true);
+const setTerrainHidden = (hidden) => {
+  world.setTerrainVisible(!hidden);
+  if (hideTerrainToggle) hideTerrainToggle.checked = !!hidden;
+};
+
+const setFollowCameraDisabled = (disabled) => {
+  world.setCameraFollowEnabled(!disabled);
+  if (disableFollowCamToggle) disableFollowCamToggle.checked = !!disabled;
+};
+
+setDebugLines(readFlagFromUrl(['debugLines', 'debug', 'physicsDebug'], false));
+setTerrainHidden(readFlagFromUrl(['hideTerrain', 'terrainHidden'], false));
+setFollowCameraDisabled(readFlagFromUrl(['disableFollowCamera', 'freeCamera', 'followCameraOff'], false));
 
 const setSlow = (enabled) => {
   engine.slowMo1fps = enabled;
@@ -51,16 +76,22 @@ const setSlow = (enabled) => {
 
 setSlow(false);
 
-if (debugToggle) {
-  debugToggle.addEventListener('click', (event) => {
-    event.stopPropagation();
-    setDebug(!physicsDebug.enabled);
+if (debugLinesToggle) {
+  debugLinesToggle.addEventListener('change', () => {
+    setDebugLines(debugLinesToggle.checked);
   });
-  debugToggle.addEventListener('touchstart', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDebug(!physicsDebug.enabled);
-  }, { passive: false });
+}
+
+if (hideTerrainToggle) {
+  hideTerrainToggle.addEventListener('change', () => {
+    setTerrainHidden(hideTerrainToggle.checked);
+  });
+}
+
+if (disableFollowCamToggle) {
+  disableFollowCamToggle.addEventListener('change', () => {
+    setFollowCameraDisabled(disableFollowCamToggle.checked);
+  });
 }
 
 if (slowToggle) {
@@ -77,7 +108,7 @@ if (slowToggle) {
 
 window.addEventListener('keydown', (event) => {
   if (event.key?.toLowerCase() === 'd') {
-    setDebug(!physicsDebug.enabled);
+    setDebugLines(!physicsDebug.enabled);
   }
   if (event.key?.toLowerCase() === 't') {
     setSlow(!engine.slowMo1fps);

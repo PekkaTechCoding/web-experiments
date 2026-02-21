@@ -22,13 +22,13 @@ export class InputHandler {
 
   handlePointerDown(event) {
     if (event?.button && event.button !== 0) return;
-    if (event?.target?.closest?.('#debugToggle')) return;
+    if (event?.target?.closest?.('#debugMenu')) return;
     this.onTapped(event);
   }
 
   handleTouchStart(event) {
     if (!event.changedTouches?.length) return;
-    if (event?.target?.closest?.('#debugToggle')) {
+    if (event?.target?.closest?.('#debugMenu')) {
       this.ignoreTouch = true;
       return;
     }

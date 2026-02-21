@@ -136,31 +136,40 @@ export class AssetLoader {
   async attachSnowboard(model) {
     const snowboard = await this.loadSnowboardModel();
     if (!snowboard) return;
+    snowboard.rotation.y = Math.PI/2;
+      
 
     snowboard.traverse((child) => {
-      if (child.isMesh) child.castShadow = true;
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+      }
     });
 
     model.updateWorldMatrix(true, true);
     const skierBox = new THREE.Box3().setFromObject(model);
     const skierSize = skierBox.getSize(new THREE.Vector3());
-    const skierCenter = skierBox.getCenter(new THREE.Vector3());
+    const skierCenterWorld = skierBox.getCenter(new THREE.Vector3());
+    const skierMinPointWorld = new THREE.Vector3(skierCenterWorld.x, skierBox.min.y, skierCenterWorld.z);
+    const skierMinPointLocal = model.worldToLocal(skierMinPointWorld);
 
     snowboard.updateWorldMatrix(true, true);
     const boardBox = new THREE.Box3().setFromObject(snowboard);
     const boardSize = boardBox.getSize(new THREE.Vector3());
     const targetLength = Math.max(1.2, skierSize.x * 1.1);
-    const boardScale = boardSize.x > 0 ? targetLength / boardSize.x : 1;
+    const boardLength = Math.max(boardSize.x, boardSize.z);
+    const boardScale = boardLength > 0 ? targetLength / boardLength : 1;
     snowboard.scale.setScalar(boardScale);
 
     snowboard.updateWorldMatrix(true, true);
     const scaledBoardBox = new THREE.Box3().setFromObject(snowboard);
-    const boardCenter = scaledBoardBox.getCenter(new THREE.Vector3());
     const boardMinY = scaledBoardBox.min.y;
 
-    snowboard.position.x += skierCenter.x - boardCenter.x;
-    snowboard.position.z += skierCenter.z - boardCenter.z;
-    snowboard.position.y += skierBox.min.y - boardMinY - 0.03;
+    const boardCenter = scaledBoardBox.getCenter(new THREE.Vector3());
+    snowboard.position.x += -boardCenter.x;
+    snowboard.position.z += -boardCenter.z;
+    const boardLift = 0.03;
+    snowboard.position.y += skierMinPointLocal.y - boardMinY + boardLift;
     snowboard.updateWorldMatrix(true, true);
     model.add(snowboard);
   }
@@ -172,13 +181,13 @@ export class AssetLoader {
     visualRoot.add(placeholder);
     group.add(visualRoot);
 
-    this.loadSkierModel().then((model) => {
+    this.loadSkierModel().then(async (model) => {
       if (!model) return;
 
       const baseScale = this.getSkierBaseScale();
       if (!this.normalizeSkierModel(model, { baseScale })) return;
       model.rotation.y = Math.PI;
-      this.attachSnowboard(model);
+      await this.attachSnowboard(model);
       model.updateWorldMatrix(true, true);
       visualRoot.add(model);
       placeholder.visible = false;

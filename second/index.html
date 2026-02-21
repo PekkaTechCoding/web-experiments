@@ -13,15 +13,36 @@
       font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       opacity: 0.8; user-select: none; font-weight: 500;
     }
-    #debugToggle {
+    #debugMenu {
       position: fixed; right: 12px; top: 12px;
+      z-index: 20;
+    }
+    #debugMenu summary {
+      list-style: none;
       width: 36px; height: 36px; border-radius: 999px;
-      border: none; background: rgba(255,255,255,0.85);
+      display: grid; place-items: center;
+      border: none; background: rgba(255,255,255,0.9);
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       cursor: pointer; font-size: 18px;
+      user-select: none;
     }
-    #debugToggle.active {
-      background: #2c5aa0; color: #fff;
+    #debugMenu summary::-webkit-details-marker { display: none; }
+    #debugPanel {
+      margin-top: 8px;
+      min-width: 220px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.95);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      color: #2c5aa0;
+      font: 13px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .debug-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0;
+      cursor: pointer;
     }
     #slowToggle {
       position: fixed; right: 12px; top: 56px;
@@ -29,6 +50,7 @@
       border: none; background: rgba(255,255,255,0.85);
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       cursor: pointer; font-size: 12px;
+      z-index: 15;
     }
     #slowToggle.active {
       background: #2c5aa0; color: #fff;
@@ -89,7 +111,23 @@
 </head>
 <body>
   <div id="hud">❄️ Winter Physics — steer with thumbstick, jump on right</div>
-  <button id="debugToggle" title="Toggle physics debug">🧪</button>
+  <details id="debugMenu">
+    <summary title="Debug options">🧪</summary>
+    <div id="debugPanel">
+      <label class="debug-option">
+        <input id="debugLinesToggle" type="checkbox" />
+        <span>Debug draw lines</span>
+      </label>
+      <label class="debug-option">
+        <input id="hideTerrainToggle" type="checkbox" />
+        <span>Hide terrain</span>
+      </label>
+      <label class="debug-option">
+        <input id="disableFollowCamToggle" type="checkbox" />
+        <span>Disable follow camera</span>
+      </label>
+    </div>
+  </details>
   <button id="slowToggle" title="Toggle 1 FPS">1fps</button>
   <div id="touch-ui">
     <div id="joystickZone">
