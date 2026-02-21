@@ -129,11 +129,11 @@ export class World {
     });
     this.physicsWorld.addContactMaterial(skierRamp);
 
-    const skierObstacles = new CANNON.ContactMaterial(this.treeMat, this.rampMat, {
-      friction: 0.05,
-      restitution: 0.1,
+    const skierTree = new CANNON.ContactMaterial(this.skierMat, this.treeMat, {
+      friction: 0.35,
+      restitution: 0.01,
     });
-    this.physicsWorld.addContactMaterial(skierObstacles);
+    this.physicsWorld.addContactMaterial(skierTree);
 
     this.initTerrain();
     this.engine.addPostUpdate(() => this.updateTerrain());

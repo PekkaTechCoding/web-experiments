@@ -306,8 +306,8 @@ export class SkierController2 {
               const rightOnPlane = new THREE.Vector3().crossVectors(alignNormal, forwardOnPlane).normalize();
               const base = new THREE.Vector3(body.position.x, body.position.y, body.position.z)
                 .sub(alignNormal.clone().multiplyScalar(footOffset * 0.95));
-              const side = 0.48;
-              const forwardOffset = 0.15;
+              const side = 0.28;
+              const forwardOffset = 0.85;
               const leftPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(-side));
               const rightPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(side));
               const sprayDir = forwardOnPlane.lengthSq() > 1e-6
