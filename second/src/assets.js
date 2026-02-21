@@ -23,11 +23,11 @@ export class AssetLoader {
   }
 
   async loadSkierModel() {
-    return this.loadGLTF('/models/skier_low_poly_character.glb');
+    return this.loadGLTF('./models/skier_low_poly_character.glb');
   }
 
   async loadSnowboardModel() {
-    return this.loadGLTF('/models/snowboard.glb');
+    return this.loadGLTF('./models/snowboard.glb');
   }
 
   createTreeMesh() {
