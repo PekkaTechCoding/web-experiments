@@ -271,7 +271,7 @@ export class SkierController2 {
             const rightOnPlane = new THREE.Vector3().crossVectors(alignNormal, forwardOnPlane).normalize();
             const base = new THREE.Vector3(body.position.x, body.position.y, body.position.z);
             const side = 0.3;
-            const forwardOffset = 0.4;
+            const forwardOffset = 0.55;
             const leftPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(-side));
             const rightPos = base.clone().add(forwardOnPlane.clone().multiplyScalar(forwardOffset)).add(rightOnPlane.clone().multiplyScalar(side));
             this.world.trails?.stamp(leftPos.x, leftPos.z);
