@@ -89,6 +89,10 @@
       font-size: 26px;
       pointer-events: auto;
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      display: grid; place-items: center;
     }
     #jumpButton.active {
       background: rgba(44,90,160,0.85);
@@ -104,6 +108,10 @@
       font-size: 22px;
       pointer-events: auto;
       touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      display: grid; place-items: center;
     }
     #boostButton.active {
       background: rgba(255,170,60,0.9);
@@ -136,8 +144,8 @@
       <div id="joystickBase"></div>
       <div id="joystickThumb"></div>
     </div>
-    <button id="boostButton" aria-label="Boost">⏩</button>
-    <button id="jumpButton" aria-label="Jump">⤴️</button>
+    <div id="boostButton" role="button" aria-label="Boost">⏩</div>
+    <div id="jumpButton" role="button" aria-label="Jump">⤴️</div>
   </div>
   <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
   <script>eruda.init();</script>

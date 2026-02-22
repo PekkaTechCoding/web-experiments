@@ -214,7 +214,9 @@ if (jumpButton) {
 
   jumpButton.addEventListener('pointerdown', (event) => {
     event.preventDefault();
+    event.stopPropagation();
     setJump(true);
+    jumpButton.setPointerCapture?.(event.pointerId);
   });
   jumpButton.addEventListener('pointerup', () => setJump(false));
   jumpButton.addEventListener('pointercancel', () => setJump(false));
@@ -229,7 +231,9 @@ if (boostButton) {
 
   boostButton.addEventListener('pointerdown', (event) => {
     event.preventDefault();
+    event.stopPropagation();
     setBoost(true);
+    boostButton.setPointerCapture?.(event.pointerId);
     setTimeout(() => setBoost(false), 0);
   });
 }
