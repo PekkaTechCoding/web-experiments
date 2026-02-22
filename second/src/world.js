@@ -71,6 +71,24 @@ export class World {
           ramp: 18,
         },
       },
+      ravines: {
+        spacing: 120,
+        offset: 40,
+        baseWidth: 10,
+        widthJitter: 8,
+        baseDepth: 18,
+        depthJitter: 8,
+        edge: 1.6,
+        jump: {
+          z: 70,
+          width: 14,
+          depth: 20,
+          edge: 1.6,
+          lipHeight: 2.4,
+          lipLength: 4,
+          lipRangeX: 45,
+        },
+      },
     };
   }
 
@@ -780,7 +798,7 @@ export class World {
   }
 
   getHeight(x, z) {
-    const { slope, mountainHeight, valleyWidthChunks, valleyDepth, chunkSize } = this.terrain;
+    const { slope, mountainHeight, valleyWidthChunks, valleyDepth, chunkSize, ravines } = this.terrain;
     const baseSlope = z * slope;
     const valleyWidth = chunkSize * valleyWidthChunks;
     const valleyT = x / valleyWidth;
@@ -789,7 +807,43 @@ export class World {
     const ridge = 1 - Math.abs(this.fbm(x * 0.014, z * 0.014, 5) * 2 - 1);
     const detail = this.fbm(x * 0.07, z * 0.07, 4);
 
-    return baseSlope + valley + ridge * mountainHeight + detail * 12.0;
+    let ravineDrop = 0;
+    if (ravines) {
+      const spacing = ravines.spacing;
+      const offset = ravines.offset;
+      const idx = Math.round((z - offset) / spacing);
+      for (let i = idx - 1; i <= idx + 1; i++) {
+        const centerZ = i * spacing + offset;
+        const dist = Math.abs(z - centerZ);
+        const width = ravines.baseWidth + ravines.widthJitter * this.hash2(i, this.terrain.seed + 91);
+        const depth = ravines.baseDepth + ravines.depthJitter * this.hash2(i + 17, this.terrain.seed + 53);
+        const edge = ravines.edge;
+        const t = THREE.MathUtils.clamp((width * 0.5 - dist) / edge, 0, 1);
+        if (t > 0) {
+          ravineDrop = Math.min(ravineDrop, -depth * t);
+        }
+      }
+
+      if (ravines.jump) {
+        const jump = ravines.jump;
+        const jumpDist = Math.abs(z - jump.z);
+        const jumpT = THREE.MathUtils.clamp((jump.width * 0.5 - jumpDist) / (jump.edge ?? ravines.edge), 0, 1);
+        if (jumpT > 0) {
+          ravineDrop = Math.min(ravineDrop, -jump.depth * jumpT);
+        }
+
+        if (Math.abs(x) < jump.lipRangeX) {
+          const lipStart = jump.z - jump.width * 0.5 - jump.lipLength;
+          const lipEnd = jump.z - jump.width * 0.5;
+          if (z >= lipStart && z <= lipEnd) {
+            const lipT = (z - lipStart) / Math.max(0.0001, jump.lipLength);
+            ravineDrop += jump.lipHeight * lipT;
+          }
+        }
+      }
+    }
+
+    return baseSlope + valley + ridge * mountainHeight + detail * 12.0 + ravineDrop;
   }
 
   fbm(x, z, octaves = 4) {
