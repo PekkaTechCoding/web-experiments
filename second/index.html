@@ -13,6 +13,11 @@
       font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       opacity: 0.8; user-select: none; font-weight: 500;
     }
+    #fps {
+      position: fixed; left: 12px; top: 36px; color: #2c5aa0;
+      font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      opacity: 0.8; user-select: none; font-weight: 600;
+    }
     #debugMenu {
       position: fixed; right: 12px; top: 12px;
       z-index: 20;
@@ -121,6 +126,7 @@
 </head>
 <body>
   <div id="hud">❄️ Winter Physics — steer with thumbstick, jump on right</div>
+  <div id="fps">FPS: --</div>
   <details id="debugMenu">
     <summary title="Debug options">🧪</summary>
     <div id="debugPanel">

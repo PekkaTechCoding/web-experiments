@@ -14,6 +14,7 @@ const hideTerrainToggle = document.getElementById('hideTerrainToggle');
 const disableFollowCamToggle = document.getElementById('disableFollowCamToggle');
 const slowToggle = document.getElementById('slowToggle');
 const hud = document.getElementById('hud');
+const fpsLabel = document.getElementById('fps');
 const physicsDebug = new PhysicsDebug(engine.scene, world.physicsWorld, { color: 0xff3333 });
 const urlParams = new URLSearchParams(window.location.search);
 
@@ -27,11 +28,25 @@ const readFlagFromUrl = (keys, fallback = false) => {
   return fallback;
 };
 
+let fpsFrames = 0;
+let fpsLast = typeof performance !== 'undefined' ? performance.now() : 0;
+
 engine.addPostUpdate(() => {
   physicsDebug.update();
   if (hud && world.debug) {
     const yaw = Number(world.debug.yawAngularVelocity) || 0;
     hud.textContent = `❄️ Winter Physics — steer with thumbstick, jump on right | yaw ${yaw.toFixed(2)} rad/s`;
+  }
+  if (fpsLabel && typeof performance !== 'undefined') {
+    fpsFrames += 1;
+    const now = performance.now();
+    const elapsed = now - fpsLast;
+    if (elapsed >= 500) {
+      const fps = (fpsFrames * 1000) / Math.max(1, elapsed);
+      fpsLabel.textContent = `FPS: ${fps.toFixed(0)}`;
+      fpsFrames = 0;
+      fpsLast = now;
+    }
   }
   if (physicsDebug.enabled && world.debug?.groundNormal) {
     physicsDebug.setGroundNormal(world.debug.groundNormal.position, world.debug.groundNormal.direction);
