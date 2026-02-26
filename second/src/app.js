@@ -249,6 +249,8 @@ if (boostButton) {
     event.stopPropagation();
     setBoost(true);
     boostButton.setPointerCapture?.(event.pointerId);
-    setTimeout(() => setBoost(false), 0);
   });
+  boostButton.addEventListener('pointerup', () => setBoost(false));
+  boostButton.addEventListener('pointercancel', () => setBoost(false));
+  boostButton.addEventListener('pointerleave', () => setBoost(false));
 }

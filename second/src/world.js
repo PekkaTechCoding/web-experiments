@@ -30,6 +30,7 @@ export class World {
     
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
+    this.rockMat = new CANNON.Material('rock');
     this.rampMat = new CANNON.Material('ramp');
     this.skierMat = new CANNON.Material('skier');
     this.terrainMat = new CANNON.Material('terrain');
@@ -59,15 +60,18 @@ export class World {
       },
       scatter: {
         trees: 4,
+        rocks: 3,
         ramps: 1,
         spheres: 3,
         minSpacing: {
           tree: 6,
+          rock: 5,
           ramp: 10,
           sphere: 4,
         },
         maxSlopeDeg: {
           tree: 30,
+          rock: 32,
           ramp: 18,
         },
       },
@@ -134,6 +138,12 @@ export class World {
       restitution: 0.02,
     });
     this.physicsWorld.addContactMaterial(skierTree);
+
+    const skierRock = new CANNON.ContactMaterial(this.skierMat, this.rockMat, {
+      friction: 0.35,
+      restitution: 0.02,
+    });
+    this.physicsWorld.addContactMaterial(skierRock);
 
     const skierSphere = new CANNON.ContactMaterial(this.skierMat, this.sphereMat, {
       friction: 0.25,
@@ -463,8 +473,9 @@ export class World {
     const placed = [];
 
     const treeRng = this.makeChunkRng(xIndex, zIndex, 1);
-    const rampRng = this.makeChunkRng(xIndex, zIndex, 2);
-    const sphereRng = this.makeChunkRng(xIndex, zIndex, 3);
+    const rockRng = this.makeChunkRng(xIndex, zIndex, 2);
+    const rampRng = this.makeChunkRng(xIndex, zIndex, 3);
+    const sphereRng = this.makeChunkRng(xIndex, zIndex, 4);
 
     this.tryScatter(scatter.trees, 20, (pos) => {
       if (!this.isSlopeOk(pos.x, pos.z, scatter.maxSlopeDeg.tree)) return null;
@@ -475,6 +486,16 @@ export class World {
         place: () => this.addTreeAt(pos.x, this.getHeight(pos.x, pos.z), pos.z),
       };
     }, placed, created, centerX, centerZ, width, depth, treeRng);
+
+    this.tryScatter(scatter.rocks, 20, (pos) => {
+      if (!this.isSlopeOk(pos.x, pos.z, scatter.maxSlopeDeg.rock)) return null;
+      return {
+        x: pos.x,
+        z: pos.z,
+        min: scatter.minSpacing.rock,
+        place: () => this.addRockAt(pos.x, this.getHeight(pos.x, pos.z), pos.z),
+      };
+    }, placed, created, centerX, centerZ, width, depth, rockRng);
 
     this.tryScatter(scatter.ramps, 30, (pos) => {
       if (!this.isSlopeOk(pos.x, pos.z, scatter.maxSlopeDeg.ramp)) return null;
@@ -578,6 +599,24 @@ export class World {
 
     const entity = new Entity('tree');
     entity.addComponent(new MeshComponent(group));
+    entity.addComponent(new PhysicsComponent(body));
+    this.engine.addEntity(entity);
+    return entity;
+  }
+
+  addRockAt(x, y, z) {
+    const mesh = this.assets.createRockMesh();
+    mesh.position.set(x, y + 0.3, z);
+
+    const body = new CANNON.Body({
+      type: CANNON.Body.STATIC,
+      shape: new CANNON.Sphere(0.9),
+      position: new CANNON.Vec3(x, y + 0.3, z),
+      material: this.rockMat,
+    });
+
+    const entity = new Entity('rock');
+    entity.addComponent(new MeshComponent(mesh));
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
     return entity;

@@ -14,7 +14,6 @@ export class SkierController2 {
     turnDrag = 4.0,
     speedSteerDrop = 0.15,
     trailStampInterval = 2,
-    boostSpeed = 18.0,
     jumpSpeed = 8.0,
     groundProbe = 0.20,
     smoothNormals = false,
@@ -35,8 +34,11 @@ export class SkierController2 {
     this.turnDrag = turnDrag;
     this.speedSteerDrop = speedSteerDrop;
     this.trailStampInterval = trailStampInterval;
-    this.boostSpeed = boostSpeed;
     this.jumpSpeed = jumpSpeed;
+    this.jumpChargeTime = 0.6;
+    this.jumpMaxMultiplier = 2.2;
+    this.jumpHold = 0;
+    this.wasJumpPressed = false;
     this.groundProbe = groundProbe;
     this.smoothNormals = smoothNormals;
     this.snowParticleInterval = snowParticleInterval;
@@ -46,7 +48,6 @@ export class SkierController2 {
     this.visualImpactBoost = visualImpactBoost;
 
     this.keys = new Set();
-    this.boostRequested = false;
     this.prevYaw = null;
     this.trailStampFrame = 0;
     this.snowParticleTimer = 0;
@@ -141,11 +142,7 @@ export class SkierController2 {
     const steer = Math.max(-1, Math.min(1, keySteer + touchSteer));
 
     const wantsJump = this.keys.has('Space') || this.world?.input?.jump;
-    if (this.world?.input?.boost) {
-      this.boostRequested = true;
-      this.world.input.boost = false;
-    }
-    const wantsBoost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.boostRequested;
+    const wantsBoost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.world?.input?.boost;
 
     // c) Compute vectors on surface
     const worldUp = new THREE.Vector3(0, 1, 0);
@@ -256,7 +253,8 @@ export class SkierController2 {
     if (grounded) {
       // f) Forward drive (french fries)
       if (forwardOnPlane.lengthSq() > 0.1) {
-        const drive = forwardOnPlane.clone().multiplyScalar(this.forwardForce * body.mass);
+        const boostMult = wantsBoost ? 2.0 : 1.0;
+        const drive = forwardOnPlane.clone().multiplyScalar(this.forwardForce * boostMult * body.mass);
         body.applyForce(new CANNON.Vec3(drive.x, drive.y, drive.z), body.position);
         if (this.world.debug) {
           this.world.debug.frenchFriesForce = {
@@ -353,29 +351,24 @@ export class SkierController2 {
         body.applyForce(new CANNON.Vec3(turnDrag.x, turnDrag.y, turnDrag.z), body.position);
       }
 
-      // h) Jump: set normal speed to jumpSpeed
+      // h) Jump (charge + release)
       if (wantsJump) {
+        this.jumpHold = Math.min(this.jumpChargeTime, this.jumpHold + dt);
+      } else if (this.wasJumpPressed && grounded) {
+        const chargeT = Math.min(1, this.jumpHold / Math.max(0.0001, this.jumpChargeTime));
+        const targetSpeed = this.jumpSpeed * (1 + (this.jumpMaxMultiplier - 1) * chargeT);
         const vNormal = Math.max(0, v.dot(alignNormal));
-        const dv = Math.max(0, this.jumpSpeed - vNormal);
+        const dv = Math.max(0, targetSpeed - vNormal);
         if (dv > 0) {
           const impulse = alignNormal.clone().multiplyScalar(dv * body.mass);
           body.applyImpulse(new CANNON.Vec3(impulse.x, impulse.y, impulse.z), body.position);
           if (dt > 1e-6) debugForce.add(impulse.clone().multiplyScalar(1 / dt));
         }
+        this.jumpHold = 0;
       }
-
-      // i) Boost: set surface speed to boostSpeed
-      if (wantsBoost) {
-        this.boostRequested = false;
-        if (forwardOnPlane.lengthSq() > 0.1) {
-          const along = Math.max(0, vPlane.dot(forwardOnPlane));
-          const dv = Math.max(0, this.boostSpeed - along);
-          if (dv > 0) {
-            const impulse = forwardOnPlane.clone().multiplyScalar(dv * body.mass);
-            body.applyImpulse(new CANNON.Vec3(impulse.x, impulse.y, impulse.z), body.position);
-            if (dt > 1e-6) debugForce.add(impulse.clone().multiplyScalar(1 / dt));
-          }
-        }
+      this.wasJumpPressed = wantsJump;
+      if (!wantsJump && !grounded) {
+        this.jumpHold = 0;
       }
     }
 

@@ -69,6 +69,15 @@ export class AssetLoader {
     return mesh;
   }
 
+  createRockMesh() {
+    const geom = new THREE.DodecahedronGeometry(0.9, 0);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x8c8f96, roughness: 0.9 });
+    const mesh = new THREE.Mesh(geom, mat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
+  }
+
   createSkierPlaceholderMesh() {
     const bodyGeom = new THREE.CylinderGeometry(0.2, 0.25, 1.2, 8);
     const headGeom = new THREE.SphereGeometry(0.25, 12, 12);
