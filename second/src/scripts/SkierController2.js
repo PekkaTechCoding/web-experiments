@@ -69,24 +69,41 @@ export class SkierController2 {
 
   onCollide(other, event) {
     if (this.fallen) return;
-    const material = other?.material?.name;
-    const isObstacle = material && material !== 'terrain';
-    if (!isObstacle) return;
-    const impact = Math.abs(event?.contact?.getImpactVelocityAlongNormal?.() ?? 0);
-    if (impact < 1.8) return;
-    this.triggerFall();
     if (!event?.contact) return;
-    // const contact = event.contact;
-    // const impact = Math.abs(contact.getImpactVelocityAlongNormal());
-    // if (!Number.isFinite(impact) || impact <= this.maxImpactSpeed) return;
 
-    // const scale = this.maxImpactSpeed / impact;
-    // if (Number.isFinite(contact.maxForce)) {
-    //   contact.maxForce = Math.min(contact.maxForce, this.maxImpactForce) * scale;
-    // } else {
-    //   contact.maxForce = this.maxImpactForce * scale;
-    // }
-    // contact.restitution = 0;
+    const otherBody = other?.getComponent?.(PhysicsComponent.type)?.body;
+    const otherName = other?.name ?? '';
+    const isTerrain = otherName.startsWith('terrain') || otherName === 'terrain';
+    const isObstacle = otherBody && !isTerrain;
+    if (!isObstacle) return;
+
+    const impact = Math.abs(event.contact.getImpactVelocityAlongNormal?.() ?? 0);
+
+    if (this.world?.snowParticles) {
+      const contact = event.contact;
+      const point = new CANNON.Vec3();
+      if (contact?.bi && contact?.ri) {
+        contact.bi.position.vadd(contact.ri, point);
+      } else {
+        point.copy(event.body?.position ?? new CANNON.Vec3());
+      }
+      const burstPos = new THREE.Vector3(point.x, point.y, point.z);
+      const u = Math.random();
+      const v = Math.random();
+      const theta = 2 * Math.PI * u;
+      const phi = Math.acos(2 * v - 1);
+      const dir = new THREE.Vector3(
+        Math.sin(phi) * Math.cos(theta),
+        Math.cos(phi),
+        Math.sin(phi) * Math.sin(theta),
+      ).normalize();
+      const speed = Math.min(4, Math.max(1.2, impact * 0.4));
+      this.world.snowParticles.emit(burstPos, dir, speed, 1.4, 18);
+    }
+
+    if (impact >= 0.8) {
+      this.triggerFall();
+    }
   }
 
   triggerFall() {
