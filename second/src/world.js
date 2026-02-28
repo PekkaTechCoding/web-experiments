@@ -45,7 +45,7 @@ export class World {
       heightOffset: 0,
       renderOffset: 0.4,
       lod: {
-        highSegments: 64,
+        highSegments: 48,
         lowSegments: 24,
         highRadiusX: 1,
         highRadiusZ: 1,
