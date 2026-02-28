@@ -154,7 +154,7 @@ export class AssetLoader {
     const snowboard = await this.loadSnowboardModel();
     if (!snowboard) return;
     snowboard.rotation.y = Math.PI/2;
-      
+    snowboard.name = "snowboard";
 
     snowboard.traverse((child) => {
       if (child.isMesh) {

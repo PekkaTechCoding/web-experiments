@@ -39,6 +39,8 @@ export class SkierController2 {
     this.jumpMaxMultiplier = 2.2;
     this.jumpHold = 0;
     this.wasJumpPressed = false;
+    this.fallen = false;
+    this.detachedSnowboard = null;
     this.groundProbe = groundProbe;
     this.smoothNormals = smoothNormals;
     this.snowParticleInterval = snowParticleInterval;
@@ -66,6 +68,13 @@ export class SkierController2 {
   }
 
   onCollide(other, event) {
+    if (this.fallen) return;
+    const material = other?.material?.name;
+    const isObstacle = material && material !== 'terrain';
+    if (!isObstacle) return;
+    const impact = Math.abs(event?.contact?.getImpactVelocityAlongNormal?.() ?? 0);
+    if (impact < 1.8) return;
+    this.triggerFall();
     if (!event?.contact) return;
     // const contact = event.contact;
     // const impact = Math.abs(contact.getImpactVelocityAlongNormal());
@@ -80,6 +89,28 @@ export class SkierController2 {
     // contact.restitution = 0;
   }
 
+  triggerFall() {
+    if (this.fallen) return;
+    this.fallen = true;
+    const body = this.entity.getComponent(PhysicsComponent.type).body;
+    body.angularFactor.set(1, 1, 1);
+    body.angularDamping = 0.1;
+    body.linearDamping = 0.02;
+    const mesh = this.entity.getComponent(MeshComponent.type).mesh;
+    const board = mesh.getObjectByName('snowboard');
+    if (board) {
+      mesh.remove(board);
+      board.position.copy(mesh.position);
+      board.quaternion.copy(mesh.quaternion);
+      if (mesh.parent) {
+        mesh.parent.add(board);
+      } else if (this.world?.engine?.scene) {
+        this.world.engine.scene.add(board);
+      }
+      this.detachedSnowboard = board;
+    }
+  }
+
   onDestroy() {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
@@ -88,6 +119,12 @@ export class SkierController2 {
   update(dt) {
     const body = this.entity.getComponent(PhysicsComponent.type).body;
     const mesh = this.entity.getComponent(MeshComponent.type).mesh;
+
+    if (this.fallen) {
+      mesh.position.copy(body.position);
+      mesh.quaternion.copy(body.quaternion);
+      return;
+    }
 
     // a) Check ground contact
     const footOffset = body.userData?.footOffset ?? 0.95;
