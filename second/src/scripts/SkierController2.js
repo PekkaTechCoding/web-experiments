@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { MeshComponent, PhysicsComponent } from '../entity.js';
+import { Entity, MeshComponent, PhysicsComponent } from '../entity.js';
 
 export class SkierController2 {
   constructor(world, {
@@ -84,21 +84,31 @@ export class SkierController2 {
       const point = new CANNON.Vec3();
       if (contact?.bi && contact?.ri) {
         contact.bi.position.vadd(contact.ri, point);
-      } else {
+      }
+      if (contact?.bj && contact?.rj) {
+        const pointB = new CANNON.Vec3();
+        contact.bj.position.vadd(contact.rj, pointB);
+        point.x = (point.x + pointB.x) * 0.5;
+        point.y = (point.y + pointB.y) * 0.5;
+        point.z = (point.z + pointB.z) * 0.5;
+      }
+      if (!Number.isFinite(point.x)) {
         point.copy(event.body?.position ?? new CANNON.Vec3());
       }
       const burstPos = new THREE.Vector3(point.x, point.y, point.z);
-      const u = Math.random();
-      const v = Math.random();
-      const theta = 2 * Math.PI * u;
-      const phi = Math.acos(2 * v - 1);
-      const dir = new THREE.Vector3(
-        Math.sin(phi) * Math.cos(theta),
-        Math.cos(phi),
-        Math.sin(phi) * Math.sin(theta),
-      ).normalize();
-      const speed = Math.min(4, Math.max(1.2, impact * 0.4));
-      this.world.snowParticles.emit(burstPos, dir, speed, 1.4, 18);
+      const speed = Math.min(4.5, Math.max(1.6, impact * 0.45));
+      for (let i = 0; i < 3; i++) {
+        const u = Math.random();
+        const v = Math.random();
+        const theta = 2 * Math.PI * u;
+        const phi = Math.acos(2 * v - 1);
+        const dir = new THREE.Vector3(
+          Math.sin(phi) * Math.cos(theta),
+          Math.cos(phi),
+          Math.sin(phi) * Math.sin(theta),
+        ).normalize();
+        this.world.snowParticles.emit(burstPos, dir, speed, 1.8, 14);
+      }
     }
 
     if (impact >= 0.8) {
@@ -125,7 +135,32 @@ export class SkierController2 {
       } else if (this.world?.engine?.scene) {
         this.world.engine.scene.add(board);
       }
-      this.detachedSnowboard = board;
+
+      const box = new THREE.Box3().setFromObject(board);
+      const size = box.getSize(new THREE.Vector3());
+      const half = new CANNON.Vec3(
+        Math.max(0.2, size.x * 0.5),
+        Math.max(0.05, size.y * 0.5),
+        Math.max(0.1, size.z * 0.5),
+      );
+      const body = new CANNON.Body({
+        mass: 1.2,
+        shape: new CANNON.Box(half),
+        position: new CANNON.Vec3(board.position.x, board.position.y, board.position.z),
+        quaternion: new CANNON.Quaternion(board.quaternion.x, board.quaternion.y, board.quaternion.z, board.quaternion.w),
+        material: this.world?.skierMat,
+        linearDamping: 0.05,
+        angularDamping: 0.2,
+      });
+      const skierBody = this.entity.getComponent(PhysicsComponent.type).body;
+      body.velocity.set(skierBody.velocity.x, skierBody.velocity.y, skierBody.velocity.z);
+      body.angularVelocity.set(skierBody.angularVelocity.x, skierBody.angularVelocity.y, skierBody.angularVelocity.z);
+
+      const boardEntity = new Entity('snowboard');
+      boardEntity.addComponent(new MeshComponent(board));
+      boardEntity.addComponent(new PhysicsComponent(body));
+      this.world?.engine?.addEntity(boardEntity);
+      this.detachedSnowboard = boardEntity;
     }
   }
 
