@@ -12,7 +12,6 @@ engine.run();
 const debugLinesToggle = document.getElementById('debugLinesToggle');
 const hideTerrainToggle = document.getElementById('hideTerrainToggle');
 const disableFollowCamToggle = document.getElementById('disableFollowCamToggle');
-const lowPerfToggle = document.getElementById('lowPerfToggle');
 const slowToggle = document.getElementById('slowToggle');
 const hud = document.getElementById('hud');
 const fpsLabel = document.getElementById('fps');
@@ -81,19 +80,9 @@ const setFollowCameraDisabled = (disabled) => {
   if (disableFollowCamToggle) disableFollowCamToggle.checked = !!disabled;
 };
 
-const setLowPerf = (enabled) => {
-  world.applyLowPerf?.(enabled);
-  if (engine.renderer) {
-    engine.renderer.shadowMap.enabled = !enabled;
-    engine.renderer.setPixelRatio(enabled ? 1 : Math.min(2, window.devicePixelRatio || 1));
-  }
-  if (lowPerfToggle) lowPerfToggle.checked = !!enabled;
-};
-
 setDebugLines(readFlagFromUrl(['debugLines', 'debug', 'physicsDebug'], false));
 setTerrainHidden(readFlagFromUrl(['hideTerrain', 'terrainHidden'], false));
 setFollowCameraDisabled(readFlagFromUrl(['disableFollowCamera', 'freeCamera', 'followCameraOff'], false));
-setLowPerf(readFlagFromUrl(['lowPerf', 'lowperf', 'perf'], false));
 
 const setSlow = (enabled) => {
   engine.slowMo1fps = enabled;
@@ -117,12 +106,6 @@ if (hideTerrainToggle) {
 if (disableFollowCamToggle) {
   disableFollowCamToggle.addEventListener('change', () => {
     setFollowCameraDisabled(disableFollowCamToggle.checked);
-  });
-}
-
-if (lowPerfToggle) {
-  lowPerfToggle.addEventListener('change', () => {
-    setLowPerf(lowPerfToggle.checked);
   });
 }
 

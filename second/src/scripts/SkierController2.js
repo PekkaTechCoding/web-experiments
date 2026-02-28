@@ -79,7 +79,7 @@ export class SkierController2 {
 
     const impact = Math.abs(event.contact.getImpactVelocityAlongNormal?.() ?? 0);
 
-    if (this.world?.snowParticles && this.world.snowParticlesEnabled) {
+    if (this.world?.snowParticles) {
       const contact = event.contact;
       const point = new CANNON.Vec3();
       if (contact?.bi && contact?.ri) {
@@ -378,7 +378,7 @@ export class SkierController2 {
             this.lastStampRight = rightPos;
           }
 
-          if (this.world.snowParticles && this.world.snowParticlesEnabled) {
+          if (this.world.snowParticles) {
             const moveDir = vPlane.lengthSq() > 1e-6 ? vPlane.clone().normalize() : null;
             const alignDot = moveDir ? Math.abs(moveDir.dot(forwardOnPlane)) : 1;
             const sideAmount = 1 - alignDot;
