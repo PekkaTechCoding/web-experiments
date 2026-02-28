@@ -12,6 +12,7 @@ engine.run();
 const debugLinesToggle = document.getElementById('debugLinesToggle');
 const hideTerrainToggle = document.getElementById('hideTerrainToggle');
 const disableFollowCamToggle = document.getElementById('disableFollowCamToggle');
+const hideObstaclesToggle = document.getElementById('hideObstaclesToggle');
 const slowToggle = document.getElementById('slowToggle');
 const hud = document.getElementById('hud');
 const fpsLabel = document.getElementById('fps');
@@ -80,9 +81,15 @@ const setFollowCameraDisabled = (disabled) => {
   if (disableFollowCamToggle) disableFollowCamToggle.checked = !!disabled;
 };
 
+const setHideObstacles = (hidden) => {
+  world.setObstaclesVisible?.(!hidden);
+  if (hideObstaclesToggle) hideObstaclesToggle.checked = !!hidden;
+};
+
 setDebugLines(readFlagFromUrl(['debugLines', 'debug', 'physicsDebug'], false));
 setTerrainHidden(readFlagFromUrl(['hideTerrain', 'terrainHidden'], false));
 setFollowCameraDisabled(readFlagFromUrl(['disableFollowCamera', 'freeCamera', 'followCameraOff'], false));
+setHideObstacles(readFlagFromUrl(['hideObstacles', 'obstaclesHidden'], false));
 
 const setSlow = (enabled) => {
   engine.slowMo1fps = enabled;
@@ -106,6 +113,12 @@ if (hideTerrainToggle) {
 if (disableFollowCamToggle) {
   disableFollowCamToggle.addEventListener('change', () => {
     setFollowCameraDisabled(disableFollowCamToggle.checked);
+  });
+}
+
+if (hideObstaclesToggle) {
+  hideObstaclesToggle.addEventListener('change', () => {
+    setHideObstacles(hideObstaclesToggle.checked);
   });
 }
 

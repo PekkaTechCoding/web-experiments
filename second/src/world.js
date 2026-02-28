@@ -27,7 +27,8 @@ export class World {
     this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
     this.terrainVisible = true;
     this.cameraFollowEnabled = true;
-    
+    this.obstaclesVisible = true;
+
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
     this.rockMat = new CANNON.Material('rock');
@@ -210,6 +211,7 @@ export class World {
     entity.addComponent(new PhysicsComponent(body));
     entity.addScript(new SphereController());
     this.engine.addEntity(entity);
+    if (!this.obstaclesVisible) mesh.visible = false;
     return entity;
   }
 
@@ -601,6 +603,7 @@ export class World {
     entity.addComponent(new MeshComponent(group));
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
+    if (!this.obstaclesVisible) group.visible = false;
     return entity;
   }
 
@@ -619,6 +622,7 @@ export class World {
     entity.addComponent(new MeshComponent(mesh));
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
+    if (!this.obstaclesVisible) mesh.visible = false;
     return entity;
   }
 
@@ -643,6 +647,7 @@ export class World {
     entity.addComponent(new MeshComponent(mesh));
     entity.addComponent(new PhysicsComponent(body));
     this.engine.addEntity(entity);
+    if (!this.obstaclesVisible) mesh.visible = false;
     return entity;
   }
 
@@ -816,6 +821,16 @@ export class World {
 
   setCameraFollowEnabled(enabled) {
     this.cameraFollowEnabled = !!enabled;
+  }
+
+  setObstaclesVisible(visible) {
+    this.obstaclesVisible = !!visible;
+    const names = new Set(['tree', 'rock', 'ramp', 'snowball']);
+    for (const entity of this.entities) {
+      if (!names.has(entity.name)) continue;
+      const mesh = entity.getComponent?.(MeshComponent.type)?.mesh;
+      if (mesh) mesh.visible = this.obstaclesVisible;
+    }
   }
 
   getHeight(x, z) {
