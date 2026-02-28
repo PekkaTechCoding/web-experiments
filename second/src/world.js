@@ -25,9 +25,10 @@ export class World {
     this.trails = enableTrails ? new TrailSystem() : null;
     this.enableTerrainMeshDeform = enableTerrainMeshDeform;
     this.snowParticles = enableSnowParticles ? new SnowParticles({ scene: this.engine.scene }) : null;
+    this.snowParticlesEnabled = !!this.snowParticles;
     this.terrainVisible = true;
     this.cameraFollowEnabled = true;
-    
+
     this.sphereMat = new CANNON.Material('sphere');
     this.treeMat = new CANNON.Material('tree');
     this.rockMat = new CANNON.Material('rock');
@@ -75,6 +76,13 @@ export class World {
           ramp: 18,
         },
       },
+    };
+    this.terrain.baseLod = { ...this.terrain.lod };
+    this.terrain.baseScatter = {
+      trees: this.terrain.scatter.trees,
+      rocks: this.terrain.scatter.rocks,
+      ramps: this.terrain.scatter.ramps,
+      spheres: this.terrain.scatter.spheres,
     };
   }
 
@@ -162,7 +170,7 @@ export class World {
         this.trails.updateOrigin(body.position.x, body.position.z);
         this.trails.updateUniforms();
       }
-      if (this.snowParticles) {
+      if (this.snowParticles && this.snowParticlesEnabled) {
         this.snowParticles.update(dt);
       }
       if (this.sunLight && this.player) {
@@ -816,6 +824,45 @@ export class World {
 
   setCameraFollowEnabled(enabled) {
     this.cameraFollowEnabled = !!enabled;
+  }
+
+  setSnowParticlesEnabled(enabled) {
+    this.snowParticlesEnabled = !!enabled;
+    if (this.snowParticles?.points) {
+      this.snowParticles.points.visible = this.snowParticlesEnabled;
+    }
+  }
+
+  applyLowPerf(enabled) {
+    const next = !!enabled;
+    if (this.lowPerf === next) return;
+    this.lowPerf = next;
+    if (next) {
+      this.terrain.lod.highSegments = Math.min(this.terrain.lod.highSegments, 40);
+      this.terrain.lod.lowSegments = Math.min(this.terrain.lod.lowSegments, 16);
+      this.terrain.lod.highRadiusX = Math.min(this.terrain.lod.highRadiusX, 1);
+      this.terrain.lod.highRadiusZ = Math.min(this.terrain.lod.highRadiusZ, 1);
+      this.terrain.lod.lowExtraX = Math.min(this.terrain.lod.lowExtraX, 1);
+      this.terrain.lod.lowExtraZ = Math.min(this.terrain.lod.lowExtraZ, 1);
+      this.terrain.lod.lowExtraForwardZ = Math.min(this.terrain.lod.lowExtraForwardZ, 1);
+      this.terrain.scatter.trees = Math.min(this.terrain.scatter.trees, 2);
+      this.terrain.scatter.rocks = Math.min(this.terrain.scatter.rocks, 2);
+      this.terrain.scatter.ramps = Math.min(this.terrain.scatter.ramps, 1);
+      this.terrain.scatter.spheres = Math.min(this.terrain.scatter.spheres, 1);
+      this.setSnowParticlesEnabled(false);
+    } else {
+      if (this.terrain.baseLod) {
+        Object.assign(this.terrain.lod, this.terrain.baseLod);
+      }
+      if (this.terrain.baseScatter) {
+        this.terrain.scatter.trees = this.terrain.baseScatter.trees;
+        this.terrain.scatter.rocks = this.terrain.baseScatter.rocks;
+        this.terrain.scatter.ramps = this.terrain.baseScatter.ramps;
+        this.terrain.scatter.spheres = this.terrain.baseScatter.spheres;
+      }
+      this.setSnowParticlesEnabled(!!this.snowParticles);
+    }
+    this.initTerrain();
   }
 
   getHeight(x, z) {
