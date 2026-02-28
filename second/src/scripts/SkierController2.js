@@ -109,6 +109,7 @@ export class SkierController2 {
   triggerFall() {
     if (this.fallen) return;
     this.fallen = true;
+    this.world?.setCameraFollowEnabled?.(false);
     const body = this.entity.getComponent(PhysicsComponent.type).body;
     body.angularFactor.set(1, 1, 1);
     body.angularDamping = 0.1;
