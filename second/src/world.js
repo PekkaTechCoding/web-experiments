@@ -419,6 +419,8 @@ export class World {
     geometry.rotateX(-Math.PI / 2);
 
     const positions = geometry.attributes.position;
+    const normals = new Float32Array(positions.count * 3);
+    const eps = 0.35;
     for (let i = 0; i < positions.count; i++) {
       const localX = positions.getX(i);
       const localZ = positions.getZ(i);
@@ -426,15 +428,40 @@ export class World {
       const worldZ = localZ + centerZ;
       const height = this.getHeight(worldX, worldZ);
       positions.setY(i, height);
+
+      const hL = this.getHeight(worldX - eps, worldZ);
+      const hR = this.getHeight(worldX + eps, worldZ);
+      const hD = this.getHeight(worldX, worldZ - eps);
+      const hU = this.getHeight(worldX, worldZ + eps);
+      const nx = hL - hR;
+      const ny = 2 * eps;
+      const nz = hD - hU;
+      const len = Math.hypot(nx, ny, nz) || 1;
+      normals[i * 3 + 0] = nx / len;
+      normals[i * 3 + 1] = ny / len;
+      normals[i * 3 + 2] = nz / len;
     }
+    geometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
     positions.needsUpdate = true;
-    geometry.computeVertexNormals();
 
     const mat = new THREE.MeshStandardMaterial({ color: 0xf5f9fc, roughness: 0.9, metalness: 0 });
     this.trails?.applyToMaterial(mat);
-    const mesh = new THREE.Mesh(geometry, mat);
+    const baseMesh = new THREE.Mesh(geometry, mat);
+    baseMesh.receiveShadow = true;
+
+    let mesh = baseMesh;
+    if (lodLevel === 'low') {
+      const skirtDepth = 6;
+      const skirtGeom = this.buildSkirtGeometry(positions, segments, skirtDepth);
+      const skirtMesh = new THREE.Mesh(skirtGeom, mat);
+      skirtMesh.receiveShadow = true;
+      const group = new THREE.Group();
+      group.add(baseMesh);
+      group.add(skirtMesh);
+      mesh = group;
+    }
+
     mesh.position.set(centerX, this.terrain.renderOffset, centerZ);
-    mesh.receiveShadow = true;
     mesh.visible = this.terrainVisible;
 
     const vertices = Array.from(positions.array);
@@ -467,6 +494,41 @@ export class World {
       centerX,
       centerZ,
     });
+  }
+
+  buildSkirtGeometry(positions, segments, skirtDepth = 6) {
+    const skirtPositions = [];
+    const skirtIndices = [];
+    let index = 0;
+    const stride = segments + 1;
+    const addQuad = (i1, i2) => {
+      const x1 = positions.getX(i1);
+      const y1 = positions.getY(i1);
+      const z1 = positions.getZ(i1);
+      const x2 = positions.getX(i2);
+      const y2 = positions.getY(i2);
+      const z2 = positions.getZ(i2);
+
+      skirtPositions.push(x1, y1, z1, x2, y2, z2, x1, y1 - skirtDepth, z1, x2, y2 - skirtDepth, z2);
+      skirtIndices.push(index + 0, index + 1, index + 2, index + 1, index + 3, index + 2);
+      index += 4;
+    };
+
+    for (let ix = 0; ix < segments; ix++) {
+      addQuad(ix, ix + 1);
+      const topRow = segments * stride;
+      addQuad(topRow + ix + 1, topRow + ix);
+    }
+    for (let iz = 0; iz < segments; iz++) {
+      addQuad(iz * stride + segments, (iz + 1) * stride + segments);
+      addQuad((iz + 1) * stride, iz * stride);
+    }
+
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.Float32BufferAttribute(skirtPositions, 3));
+    geom.setIndex(skirtIndices);
+    geom.computeVertexNormals();
+    return geom;
   }
 
   scatterTerrainEntities(xIndex, zIndex, centerX, centerZ, width, depth) {
